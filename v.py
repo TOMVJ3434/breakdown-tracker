@@ -1142,6 +1142,57 @@ with tab6:
 with tab7:
     st.markdown("<div class='section-header'>💾 Database Manager</div>", unsafe_allow_html=True)
 
+    # 🔒 DB MANAGER PASSWORD PROTECTION
+    DB_ADMIN_PASSWORD = "admin123"  # Change this admin password!
+
+    if "db_admin_auth" not in st.session_state:
+        st.session_state.db_admin_auth = False
+
+    if not st.session_state.db_admin_auth:
+        st.markdown("""
+        <div style="text-align: center; padding: 30px; background: rgba(255,0,110,0.1); 
+                    backdrop-filter: blur(16px); border-radius: 20px; 
+                    border: 1px solid rgba(255,0,110,0.3); margin: 20px 0;">
+            <div style="font-size: 3em; margin-bottom: 15px;">🛡️</div>
+            <h3 style="color: #ff006e; margin-bottom: 10px;">Admin Access Required</h3>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 20px;">
+                This section contains sensitive database operations.<br>
+                Please enter the admin password to continue.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            admin_pass = st.text_input("Admin Password", type="password", 
+                                      placeholder="Enter admin password...",
+                                      label_visibility="collapsed")
+
+            if st.button("🔓 UNLOCK DB MANAGER", use_container_width=True, type="primary"):
+                if admin_pass == DB_ADMIN_PASSWORD:
+                    st.session_state.db_admin_auth = True
+                    st.rerun()
+                else:
+                    st.error("❌ Wrong admin password! Access denied.")
+
+        st.stop()
+    else:
+        # Show logout button for admin
+        col1, col2 = st.columns([6, 1])
+        with col2:
+            if st.button("🔒 Lock", help="Lock DB Manager"):
+                st.session_state.db_admin_auth = False
+                st.rerun()
+
+    st.markdown("""
+    <div style="background: rgba(0,245,255,0.1); border-left: 4px solid #00f5ff; 
+                padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="color: #00f5ff; margin: 0; font-weight: 600;">
+            🛡️ Admin Mode Active - Be careful with database operations!
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
     db_df = get_all_data()
 
     if len(db_df) > 0:
