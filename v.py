@@ -14,7 +14,7 @@ from plotly.subplots import make_subplots
 # ================================================================================
 # PASSWORD AUTHENTICATION
 # ================================================================================
-APP_PASSWORD = "rovix123"  # Change this password!
+APP_PASSWORD = "rovix"  # Change this password!
 
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
