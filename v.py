@@ -65,7 +65,7 @@ if not st.session_state.authenticated:
 DB_PATH = "breakdown_database.db"
 
 # ================================================================================
-# DATABASE FUNCTIONS
+# DATABASE FUNCTIONS (Same as before)
 # ================================================================================
 def init_database():
     conn = sqlite3.connect(DB_PATH)
@@ -109,8 +109,8 @@ def save_to_database(df):
     for _, row in df.iterrows():
         cursor.execute("""
             INSERT INTO breakdown_log 
-            (machine_id, mc_name, division, issue, date, start_time, close_time, close_date, total_time_mins, action_taken, shift, maintenance_name, severity)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (machine_id, mc_name, division, issue, date, start_time, close_time, close_date, total_time_mins, action_taken, shift, maintenance_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             str(row.get('Machine ID', '')), str(row.get('M/C Name', '')), 
             str(row.get('Division', 'DIV-1')), str(row.get('Issue', '')),
@@ -119,8 +119,7 @@ def save_to_database(df):
             str(row.get('Close Date', row.get('Date', ''))),
             int(row.get('Total Time (mins)', 30)),
             str(row.get('Action Taken', '')), str(row.get('Shift', '1')),
-            str(row.get('Maintenance Name', 'Technician_1')),
-            str(row.get('Severity', 'Medium'))
+            str(row.get('Maintenance Name', 'Technician_1'))
         ))
     conn.commit()
     conn.close()
@@ -237,6 +236,64 @@ st.markdown("""
         border-color: rgba(0, 245, 255, 0.3);
     }
 
+    /* Animated Border */
+    .animated-border {
+        position: relative;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(16px);
+        padding: 24px;
+        overflow: hidden;
+    }
+    .animated-border::before {
+        content: '';
+        position: absolute;
+        top: -2px; left: -2px; right: -2px; bottom: -2px;
+        background: linear-gradient(45deg, #ff00cc, #3333ff, #00ccff, #ff00cc);
+        background-size: 400% 400%;
+        z-index: -1;
+        border-radius: 22px;
+        animation: gradient-rotate 3s ease infinite;
+    }
+    @keyframes gradient-rotate {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    /* Status Badges */
+    .badge-ok {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75em;
+        font-weight: 600;
+    }
+    .badge-ng {
+        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75em;
+        font-weight: 600;
+    }
+    .badge-warning {
+        background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+        color: #333;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75em;
+        font-weight: 600;
+    }
+
+    /* Modern Table */
+    .modern-table {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
     /* Section Headers */
     .section-header {
         font-size: 1.5em;
@@ -245,6 +302,26 @@ st.markdown("""
         margin: 24px 0 16px 0;
         padding-bottom: 8px;
         border-bottom: 2px solid rgba(0, 245, 255, 0.3);
+    }
+
+    /* Floating Action Button */
+    .fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .fab:hover {
+        transform: scale(1.1) rotate(90deg);
     }
 
     /* Chart Container */
@@ -284,7 +361,9 @@ st.markdown("""
         border-radius: 4px;
     }
 
-    /* FIXED FILE UPLOADER STYLING */
+    /* ============================================ */
+    /* FIXED FILE UPLOADER STYLING - NO DOUBLE TEXT */
+    /* ============================================ */
     [data-testid="stFileUploader"] {
         background: transparent !important;
         border: none !important;
@@ -440,12 +519,10 @@ with col_title:
     """, unsafe_allow_html=True)
 
 with col_time:
-    current_date = datetime.now().strftime('%d-%m-%Y')
-    current_time = datetime.now().strftime('%H:%M:%S')
     st.markdown(f"""
     <div class="glass-card" style="text-align: center; padding: 16px;">
-        <p style="color: rgba(255,255,255,0.6); font-size: 0.85em; margin: 0;">📅 {current_date}</p>
-        <p style="color: #00f5ff; font-size: 1.2em; margin: 8px 0 0 0; font-weight: 600;">🕐 {current_time}</p>
+        <p style="color: rgba(255,255,255,0.6); font-size: 0.85em; margin: 0;">📅 {datetime.now().strftime('%d-%m-%Y')}</p>
+        <p style="color: #00f5ff; font-size: 1.2em; margin: 8px 0 0 0; font-weight: 600;">🕐 {datetime.now().strftime('%H:%M:%S')}</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -468,7 +545,7 @@ with input_col1:
     # File uploader - NO glass-card wrapper to prevent double text
     uploaded_file = st.file_uploader("Upload Excel/CSV File", type=["xlsx", "xls", "csv"], label_visibility="collapsed")
 
-    if uploaded_file is not None:
+    if uploaded_file:
         try:
             if uploaded_file.name.endswith('.csv'):
                 df_upload = pd.read_csv(uploaded_file)
@@ -529,88 +606,26 @@ with input_col2:
 st.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
 st.markdown("<div class='section-header'>📊 Load Data from Database</div>", unsafe_allow_html=True)
 
-load_option = st.radio("Select Data Source:", ["📊 Database (Saved Records)", "📋 All Database Records", "🎲 Demo Data"], horizontal=True)
-
-# Initialize df as empty
-df = pd.DataFrame()
+load_option = st.radio("Select Data Source:", ["📊 Database (Saved Records)", "🎲 Demo Data"], horizontal=True)
 
 if load_option == "📊 Database (Saved Records)":
-    # Date Range Filter
-    st.markdown("<div class='chart-container' style='margin: 15px 0;'>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 15px;'>📅 Filter by Date Range</h4>", unsafe_allow_html=True)
-
-    date_col1, date_col2, date_col3 = st.columns([2, 2, 1])
-    with date_col1:
-        from_date = st.date_input("📅 From Date", datetime.now() - timedelta(days=30), key="load_from_date")
-    with date_col2:
-        to_date = st.date_input("📅 To Date", datetime.now(), key="load_to_date")
-    with date_col3:
-        st.markdown("<br>", unsafe_allow_html=True)
-        load_btn = st.button("🔄 LOAD DATA", use_container_width=True, type="primary")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if load_btn:
-        df = get_all_data()
-        if len(df) == 0:
-            st.warning("⚠️ Database empty! Upload Excel or add manual entry first.")
-        else:
-            # Convert date column for filtering
-            df['Machine ID'] = df['machine_id']
-            df['M/C Name'] = df['mc_name']
-            df['Division'] = df['division']
-            df['Issue'] = df['issue']
-            df['Date'] = df['date']
-            df['Start Time'] = df['start_time']
-            df['Close Time'] = df['close_time']
-            df['Close Date'] = df['close_date'].fillna(df['date'])
-            df['Total Time (mins)'] = df['total_time_mins']
-            df['Action Taken'] = df['action_taken']
-            df['Shift'] = df['shift']
-            df['Maintenance Name'] = df['maintenance_name']
-
-            # Apply date filter
-            try:
-                df['date_parsed'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
-                from_dt = pd.Timestamp(from_date)
-                to_dt = pd.Timestamp(to_date)
-
-                # Filter by date range
-                df_filtered = df[(df['date_parsed'] >= from_dt) & (df['date_parsed'] <= to_dt)].copy()
-                df_filtered = df_filtered.drop('date_parsed', axis=1)
-
-                if len(df_filtered) == 0:
-                    st.warning(f"⚠️ No records found between {from_date.strftime('%d-%m-%Y')} and {to_date.strftime('%d-%m-%Y')}")
-                    st.info("📊 Showing all records instead...")
-                    df = df.drop('date_parsed', axis=1)
-                else:
-                    df = df_filtered
-                    st.success(f"✅ Loaded {len(df)} records from Database ({from_date.strftime('%d-%m-%Y')} to {to_date.strftime('%d-%m-%Y')})")
-            except Exception as e:
-                df = df.drop('date_parsed', axis=1)
-                st.success(f"✅ Loaded {len(df)} records from Database (date filter skipped)")
-    else:
-        st.info("📅 Select date range and click 'LOAD DATA' to fetch records")
-
-elif load_option == "📋 All Database Records":
     df = get_all_data()
     if len(df) == 0:
         st.warning("⚠️ Database empty! Upload Excel or add manual entry first.")
-    else:
-        df['Machine ID'] = df['machine_id']
-        df['M/C Name'] = df['mc_name']
-        df['Division'] = df['division']
-        df['Issue'] = df['issue']
-        df['Date'] = df['date']
-        df['Start Time'] = df['start_time']
-        df['Close Time'] = df['close_time']
-        df['Close Date'] = df['close_date'].fillna(df['date'])
-        df['Total Time (mins)'] = df['total_time_mins']
-        df['Action Taken'] = df['action_taken']
-        df['Shift'] = df['shift']
-        df['Maintenance Name'] = df['maintenance_name']
-        st.success(f"✅ Loaded ALL {len(df)} records from Database")
-
+        st.stop()
+    df['Machine ID'] = df['machine_id']
+    df['M/C Name'] = df['mc_name']
+    df['Division'] = df['division']
+    df['Issue'] = df['issue']
+    df['Date'] = df['date']
+    df['Start Time'] = df['start_time']
+    df['Close Time'] = df['close_time']
+    df['Close Date'] = df['close_date'].fillna(df['date'])
+    df['Total Time (mins)'] = df['total_time_mins']
+    df['Action Taken'] = df['action_taken']
+    df['Shift'] = df['shift']
+    df['Maintenance Name'] = df['maintenance_name']
+    st.success(f"✅ Loaded {len(df)} records from Database")
 else:
     df = generate_demo_data()
     st.info(f"📊 Using DEMO DATA — {len(df)} records")
@@ -628,601 +643,589 @@ time_col = 'Total Time (mins)'
 machine_id_col = 'Machine ID'
 division_col = 'Division'
 
-# Only process if df has data
-if len(df) > 0:
-    if 'Close Date' not in df.columns:
-        df['Close Date'] = df[date_col]
+if 'Close Date' not in df.columns:
+    df['Close Date'] = df[date_col]
 
-    if time_col not in df.columns:
-        df[time_col] = 30
+if time_col not in df.columns:
+    df[time_col] = 30
 
-    if 'Shift' not in df.columns:
-        df['Shift'] = '1'
-    if 'Maintenance Name' not in df.columns:
-        df['Maintenance Name'] = 'Technician_1'
-    if 'Division' not in df.columns:
-        df['Division'] = 'DIV-1'
-    if 'Machine ID' not in df.columns:
-        df['Machine ID'] = 'MC-000'
+if 'Shift' not in df.columns:
+    df['Shift'] = '1'
+if 'Maintenance Name' not in df.columns:
+    df['Maintenance Name'] = 'Technician_1'
+if 'Division' not in df.columns:
+    df['Division'] = 'DIV-1'
+if 'Machine ID' not in df.columns:
+    df['Machine ID'] = 'MC-000'
 
-    if division_filter and "All" not in division_filter:
-        df = df[df[division_col].isin(division_filter)].copy()
+if division_filter and "All" not in division_filter:
+    df = df[df[division_col].isin(division_filter)].copy()
 
-    df = df.dropna(subset=[mc_col, issue_col]).copy()
+df = df.dropna(subset=[mc_col, issue_col]).copy()
 
-    # ================================================================================
-    # KPI CARDS - MODERN
-    # ================================================================================
-    st.markdown("<br>", unsafe_allow_html=True)
+# ================================================================================
+# KPI CARDS - MODERN
+# ================================================================================
+st.markdown("<br>", unsafe_allow_html=True)
 
-    total_breakdowns = len(df)
-    total_downtime = df[time_col].sum()
-    avg_downtime = df[time_col].mean()
-    mttr = df[time_col].mean()
-    unique_issues = df[issue_col].nunique()
-    unique_machines = df[mc_col].nunique()
-    unique_divisions = df[division_col].nunique()
-    repeated_issues = df[issue_col].value_counts()
-    top_repeated = repeated_issues.iloc[0] if len(repeated_issues) > 0 else 0
-    top_issue = repeated_issues.index[0] if len(repeated_issues) > 0 else 'N/A'
+total_breakdowns = len(df)
+total_downtime = df[time_col].sum()
+avg_downtime = df[time_col].mean()
+mttr = df[time_col].mean()
+unique_issues = df[issue_col].nunique()
+unique_machines = df[mc_col].nunique()
+unique_divisions = df[division_col].nunique()
+repeated_issues = df[issue_col].value_counts()
+top_repeated = repeated_issues.iloc[0] if len(repeated_issues) > 0 else 0
+top_issue = repeated_issues.index[0] if len(repeated_issues) > 0 else 'N/A'
 
-    total_runtime = 30 * 24 * 60
-    mtbf = total_runtime / total_breakdowns if total_breakdowns > 0 else 0
+total_runtime = 30 * 24 * 60
+mtbf = total_runtime / total_breakdowns if total_breakdowns > 0 else 0
 
-    kpi_data = [
-        ("🔧 Total Breakdowns", f"{total_breakdowns}", '#667eea', 'breakdowns'),
-        ("⏱️ Total Downtime", f"{total_downtime//60}h {total_downtime%60}m", '#f093fb', 'downtime'),
-        ("📊 Avg Downtime", f"{avg_downtime:.0f} mins", '#4facfe', 'avg'),
-        ("🎯 MTTR", f"{mttr:.0f} mins", '#43e97b' if mttr <= target_mttr else '#fa709a', 'mttr'),
-        ("⏰ MTBF", f"{mtbf//60:.0f}h {mtbf%60:.0f}m", '#38f9d7', 'mtbf'),
-        ("🏭 Divisions", f"{unique_divisions}", '#ffecd2', 'divisions'),
-    ]
+kpi_data = [
+    ("🔧 Total Breakdowns", f"{total_breakdowns}", '#667eea', 'breakdowns'),
+    ("⏱️ Total Downtime", f"{total_downtime//60}h {total_downtime%60}m", '#f093fb', 'downtime'),
+    ("📊 Avg Downtime", f"{avg_downtime:.0f} mins", '#4facfe', 'avg'),
+    ("🎯 MTTR", f"{mttr:.0f} mins", '#43e97b' if mttr <= target_mttr else '#fa709a', 'mttr'),
+    ("⏰ MTBF", f"{mtbf//60:.0f}h {mtbf%60:.0f}m", '#38f9d7', 'mtbf'),
+    ("🏭 Divisions", f"{unique_divisions}", '#ffecd2', 'divisions'),
+]
 
-    kpi_cols = st.columns(6)
-    for col, (label, value, color, key) in zip(kpi_cols, kpi_data):
-        with col:
-            # Safe progress bar width calculation
-            try:
-                val_num = int(value.split()[0]) if value.split()[0].replace('-','').isdigit() else 75
-                progress_width = min(100, val_num)
-            except:
-                progress_width = 75
-
-            st.markdown(f"""
-            <div class="kpi-card">
-                <h3 style="color: {color}; margin: 0; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">{label}</h3>
-                <h2 style="color: #fff; margin: 12px 0; font-size: 1.8em; font-weight: 800;">{value}</h2>
-                <div class="progress-modern">
-                    <div class="progress-modern-fill" style="width: {progress_width}%"></div>
-                </div>
+kpi_cols = st.columns(6)
+for col, (label, value, color, key) in zip(kpi_cols, kpi_data):
+    with col:
+        st.markdown(f"""
+        <div class="kpi-card">
+            <h3 style="color: {color}; margin: 0; font-size: 0.8em; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">{label}</h3>
+            <h2 style="color: #fff; margin: 12px 0; font-size: 1.8em; font-weight: 800;">{value}</h2>
+            <div class="progress-modern">
+                <div class="progress-modern-fill" style="width: {min(100, int(value.split()[0]) if value.split()[0].isdigit() else 75)}%"></div>
             </div>
-            """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
-    # ================================================================================
-    # AI INTELLIGENCE - MODERN ALERTS
-    # ================================================================================
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("<div class='section-header'>🧠 AI Maintenance Intelligence</div>", unsafe_allow_html=True)
+# ================================================================================
+# AI INTELLIGENCE - MODERN ALERTS
+# ================================================================================
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("<div class='section-header'>🧠 AI Maintenance Intelligence</div>", unsafe_allow_html=True)
 
-    ai_insights = []
-    ai_sev = []
+ai_insights = []
+ai_sev = []
 
-    if mttr > target_mttr:
-        ai_insights.append(f"🔴 HIGH MTTR: {mttr:.0f} mins exceeds target ({target_mttr} mins)")
-        ai_sev.append("critical")
-    if top_repeated > 5:
-        ai_insights.append(f"🟡 REPEATED: '{top_issue}' occurred {top_repeated} times")
-        ai_sev.append("warning")
-    if total_breakdowns > 50:
-        ai_insights.append(f"⚠️ HIGH FREQUENCY: {total_breakdowns} breakdowns")
-        ai_sev.append("warning")
-    if mtbf < 8 * 60:
-        ai_insights.append(f"⏰ LOW MTBF: {mtbf//60:.0f}h between failures")
-        ai_sev.append("warning")
-    if mttr <= target_mttr and top_repeated <= 3:
-        ai_insights.append("✅ EXCELLENT: MTTR within target")
-        ai_sev.append("success")
-    if unique_divisions > 1:
-        div_counts = df[division_col].value_counts()
-        worst_div = div_counts.index[0]
-        worst_count = div_counts.iloc[0]
-        ai_insights.append(f"🏭 WORST DIVISION: '{worst_div}' with {worst_count} breakdowns")
-        ai_sev.append("warning")
+if mttr > target_mttr:
+    ai_insights.append(f"🔴 HIGH MTTR: {mttr:.0f} mins exceeds target ({target_mttr} mins)")
+    ai_sev.append("critical")
+if top_repeated > 5:
+    ai_insights.append(f"🟡 REPEATED: '{top_issue}' occurred {top_repeated} times")
+    ai_sev.append("warning")
+if total_breakdowns > 50:
+    ai_insights.append(f"⚠️ HIGH FREQUENCY: {total_breakdowns} breakdowns")
+    ai_sev.append("warning")
+if mtbf < 8 * 60:
+    ai_insights.append(f"⏰ LOW MTBF: {mtbf//60:.0f}h between failures")
+    ai_sev.append("warning")
+if mttr <= target_mttr and top_repeated <= 3:
+    ai_insights.append("✅ EXCELLENT: MTTR within target")
+    ai_sev.append("success")
+if unique_divisions > 1:
+    div_counts = df[division_col].value_counts()
+    worst_div = div_counts.index[0]
+    worst_count = div_counts.iloc[0]
+    ai_insights.append(f"🏭 WORST DIVISION: '{worst_div}' with {worst_count} breakdowns")
+    ai_sev.append("warning")
 
-    if ai_insights:
-        insight_cols = st.columns(min(len(ai_insights), 3))
-        for idx, (insight, sev) in enumerate(zip(ai_insights, ai_sev)):
-            with insight_cols[idx % 3]:
-                if sev == "critical":
-                    st.markdown(f"""
-                    <div class="glass-card" style="border-left: 4px solid #ff006e;">
-                        <p style="color: #ff006e; font-weight: 600; margin: 0;">{insight}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                elif sev == "warning":
-                    st.markdown(f"""
-                    <div class="glass-card" style="border-left: 4px solid #fb5607;">
-                        <p style="color: #fb5607; font-weight: 600; margin: 0;">{insight}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.markdown(f"""
-                    <div class="glass-card" style="border-left: 4px solid #38b000;">
-                        <p style="color: #38b000; font-weight: 600; margin: 0;">{insight}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+if ai_insights:
+    insight_cols = st.columns(min(len(ai_insights), 3))
+    for idx, (insight, sev) in enumerate(zip(ai_insights, ai_sev)):
+        with insight_cols[idx % 3]:
+            if sev == "critical":
+                st.markdown(f"""
+                <div class="glass-card" style="border-left: 4px solid #ff006e;">
+                    <p style="color: #ff006e; font-weight: 600; margin: 0;">{insight}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            elif sev == "warning":
+                st.markdown(f"""
+                <div class="glass-card" style="border-left: 4px solid #fb5607;">
+                    <p style="color: #fb5607; font-weight: 600; margin: 0;">{insight}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="glass-card" style="border-left: 4px solid #38b000;">
+                    <p style="color: #38b000; font-weight: 600; margin: 0;">{insight}</p>
+                </div>
+                """, unsafe_allow_html=True)
 
-    # ================================================================================
-    # MODERN TABS WITH INTERACTIVE CHARTS
-    # ================================================================================
-    st.markdown("<br>", unsafe_allow_html=True)
+# ================================================================================
+# MODERN TABS WITH INTERACTIVE CHARTS
+# ================================================================================
+st.markdown("<br>", unsafe_allow_html=True)
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
-        "📊 Dashboard", "🏭 Division View", "🔄 Repeated Issues", "🔍 Issue Detail", "🏭 Machine View", "📋 Full Data", "💾 DB Manager"
-    ])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    "📊 Dashboard", "🏭 Division View", "🔄 Repeated Issues", "🔍 Issue Detail", "🏭 Machine View", "📋 Full Data", "💾 DB Manager"
+])
 
-    # ==================== TAB 1: DASHBOARD - MODERN CHARTS ====================
-    with tab1:
-        st.markdown("<div class='section-header'>📊 Maintenance Dashboard</div>", unsafe_allow_html=True)
+# ==================== TAB 1: DASHBOARD - MODERN CHARTS ====================
+with tab1:
+    st.markdown("<div class='section-header'>📊 Maintenance Dashboard</div>", unsafe_allow_html=True)
 
-        # Division Bar Chart - Modern
-        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Breakdown Summary</h4>", unsafe_allow_html=True)
+    # Division Bar Chart - Modern
+    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Breakdown Summary</h4>", unsafe_allow_html=True)
 
-        div_summary = df.groupby(division_col).agg({
-            time_col: ['sum', 'mean', 'count'],
-            mc_col: 'nunique'
-        }).round(0)
-        div_summary.columns = ['Total Downtime (mins)', 'Avg Downtime (mins)', 'Breakdown Count', 'Machines Affected']
-        div_summary = div_summary.sort_values('Breakdown Count', ascending=False)
-        st.dataframe(div_summary, use_container_width=True)
+    div_summary = df.groupby(division_col).agg({
+        time_col: ['sum', 'mean', 'count'],
+        mc_col: 'nunique'
+    }).round(0)
+    div_summary.columns = ['Total Downtime (mins)', 'Avg Downtime (mins)', 'Breakdown Count', 'Machines Affected']
+    div_summary = div_summary.sort_values('Breakdown Count', ascending=False)
+    st.dataframe(div_summary, use_container_width=True)
 
-        # Interactive Plotly Bar Chart
-        div_counts = df[division_col].value_counts().reset_index()
-        div_counts.columns = ['Division', 'Count']
+    # Interactive Plotly Bar Chart
+    div_counts = df[division_col].value_counts().reset_index()
+    div_counts.columns = ['Division', 'Count']
 
-        fig_div = px.bar(div_counts, x='Division', y='Count',
-                         title='Breakdown Count by Division',
-                         color='Count', color_continuous_scale='viridis',
-                         template='plotly_dark')
-        fig_div.update_layout(
+    fig_div = px.bar(div_counts, x='Division', y='Count',
+                     title='Breakdown Count by Division',
+                     color='Count', color_continuous_scale='viridis',
+                     template='plotly_dark')
+    fig_div.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font_color='white',
+        title_font_size=16,
+        title_x=0.5,
+        showlegend=False
+    )
+    st.plotly_chart(fig_div, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Top 5 Issues - Interactive Pie
+    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🔄 Top 5 Repeated Issues</h4>", unsafe_allow_html=True)
+
+    top5 = df[issue_col].value_counts().head(5).reset_index()
+    top5.columns = ['Issue', 'Count']
+
+    fig_pie = px.pie(top5, values='Count', names='Issue',
+                     title='Top 5 Issues Distribution',
+                     color_discrete_sequence=px.colors.sequential.Plasma_r,
+                     template='plotly_dark',
+                     hole=0.4)
+    fig_pie.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font_color='white',
+        title_x=0.5,
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2)
+    )
+    st.plotly_chart(fig_pie, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Machine Downtime - Interactive
+    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Machine-wise Total Downtime</h4>", unsafe_allow_html=True)
+
+    machine_downtime = df.groupby(mc_col)[time_col].sum().sort_values(ascending=False).reset_index()
+    machine_downtime.columns = ['Machine', 'Downtime (mins)']
+    machine_downtime['Downtime (hours)'] = machine_downtime['Downtime (mins)'] / 60
+
+    fig_machine = px.bar(machine_downtime, x='Machine', y='Downtime (hours)',
+                        title='Machine Downtime (Hours)',
+                        color='Downtime (hours)',
+                        color_continuous_scale='reds',
+                        template='plotly_dark')
+    fig_machine.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font_color='white',
+        title_x=0.5,
+        xaxis_tickangle=-45
+    )
+    st.plotly_chart(fig_machine, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # Daily Trend - Interactive Line
+    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>📅 Daily Breakdown Trend</h4>", unsafe_allow_html=True)
+
+    daily = df.groupby(date_col).size().reset_index()
+    daily.columns = ['Date', 'Count']
+
+    fig_line = px.line(daily, x='Date', y='Count',
+                      title='Daily Breakdown Count Trend',
+                      markers=True,
+                      template='plotly_dark')
+    fig_line.update_traces(line_color='#00f5ff', marker_color='#667eea', marker_size=8)
+    fig_line.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font_color='white',
+        title_x=0.5,
+        xaxis_tickangle=-45
+    )
+    st.plotly_chart(fig_line, use_container_width=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ==================== TAB 2: DIVISION VIEW ====================
+with tab2:
+    st.markdown("<div class='section-header'>🏭 Division-wise Analysis</div>", unsafe_allow_html=True)
+
+    all_divisions = sorted(df[division_col].unique())
+    selected_division = st.selectbox("🏭 Select Division", all_divisions)
+
+    if selected_division:
+        div_df = df[df[division_col] == selected_division].copy()
+
+        # KPI Cards
+        div_cols = st.columns(4)
+        div_metrics = [
+            ("💥 Breakdowns", f"{len(div_df)}", '#ff006e'),
+            ("⏱️ Total Time", f"{div_df[time_col].sum()//60}h", '#8338ec'),
+            ("📊 Avg Time", f"{div_df[time_col].mean():.0f}m", '#3a86ff'),
+            ("🔧 Machines", f"{div_df[mc_col].nunique()}", '#38b000'),
+        ]
+        for col, (label, value, color) in zip(div_cols, div_metrics):
+            with col:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <h4 style="color: {color}; margin: 0; font-size: 0.9em; font-weight: 600;">{label}</h4>
+                    <h2 style="color: #fff; margin: 8px 0; font-size: 1.5em; font-weight: 700;">{value}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Division Issues Chart
+        div_issues = div_df[issue_col].value_counts().reset_index()
+        div_issues.columns = ['Issue', 'Count']
+
+        fig_div_issue = px.bar(div_issues, y='Issue', x='Count',
+                               title=f'{selected_division} — Issue Breakdown',
+                               color='Count',
+                               color_continuous_scale='magma',
+                               template='plotly_dark',
+                               orientation='h')
+        fig_div_issue.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             font_color='white',
-            title_font_size=16,
             title_x=0.5,
-            showlegend=False
+            yaxis_autorange="reversed"
         )
-        st.plotly_chart(fig_div, use_container_width=True)
+        st.plotly_chart(fig_div_issue, use_container_width=True)
+
+        # Timeline Table
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        timeline = div_df[[date_col, machine_id_col, mc_col, issue_col, start_col, close_col, time_col, action_col, 'Maintenance Name']].sort_values(date_col)
+        st.dataframe(timeline, use_container_width=True, height=300)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # Top 5 Issues - Interactive Pie
-        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🔄 Top 5 Repeated Issues</h4>", unsafe_allow_html=True)
+# ==================== TAB 3: REPEATED ISSUES ====================
+with tab3:
+    st.markdown("<div class='section-header'>🔄 Repeated Issues Analysis</div>", unsafe_allow_html=True)
 
-        top5 = df[issue_col].value_counts().head(5).reset_index()
-        top5.columns = ['Issue', 'Count']
+    issue_counts = df[issue_col].value_counts().reset_index()
+    issue_counts.columns = ['Issue', 'Count']
+    issue_counts['Total Downtime (mins)'] = df.groupby(issue_col)[time_col].sum().values
+    issue_counts['Avg Repair (mins)'] = df.groupby(issue_col)[time_col].mean().values
+    issue_counts['Repeated'] = issue_counts['Count'].apply(
+        lambda x: '🔴 HIGH' if x > 5 else '🟡 MEDIUM' if x > 2 else '🟢 LOW'
+    )
 
-        fig_pie = px.pie(top5, values='Count', names='Issue',
-                         title='Top 5 Issues Distribution',
-                         color_discrete_sequence=px.colors.sequential.Plasma_r,
-                         template='plotly_dark',
-                         hole=0.4)
-        fig_pie.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font_color='white',
-            title_x=0.5,
-            showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2)
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+    # Interactive Table
+    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+    st.dataframe(issue_counts, use_container_width=True, height=400)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-        # Machine Downtime - Interactive
-        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Machine-wise Total Downtime</h4>", unsafe_allow_html=True)
-
-        machine_downtime = df.groupby(mc_col)[time_col].sum().sort_values(ascending=False).reset_index()
-        machine_downtime.columns = ['Machine', 'Downtime (mins)']
-        machine_downtime['Downtime (hours)'] = machine_downtime['Downtime (mins)'] / 60
-
-        fig_machine = px.bar(machine_downtime, x='Machine', y='Downtime (hours)',
-                            title='Machine Downtime (Hours)',
-                            color='Downtime (hours)',
-                            color_continuous_scale='reds',
+    # Treemap for Issues
+    fig_treemap = px.treemap(issue_counts, path=['Issue'], values='Count',
+                            color='Count', color_continuous_scale='RdYlBu_r',
+                            title='Issue Frequency Treemap',
                             template='plotly_dark')
-        fig_machine.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
-            plot_bgcolor='rgba(0,0,0,0)',
-            font_color='white',
-            title_x=0.5,
-            xaxis_tickangle=-45
-        )
-        st.plotly_chart(fig_machine, use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+    fig_treemap.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        font_color='white',
+        title_x=0.5
+    )
+    st.plotly_chart(fig_treemap, use_container_width=True)
 
-        # Daily Trend - Interactive Line
-        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>📅 Daily Breakdown Trend</h4>", unsafe_allow_html=True)
+# ==================== TAB 4: ISSUE DETAIL ====================
+with tab4:
+    st.markdown("<div class='section-header'>🔍 Issue Detail View</div>", unsafe_allow_html=True)
 
-        daily = df.groupby(date_col).size().reset_index()
-        daily.columns = ['Date', 'Count']
+    all_issues = sorted(df[issue_col].unique())
+    selected_issue = st.selectbox("🔍 Select Issue", all_issues)
 
-        fig_line = px.line(daily, x='Date', y='Count',
-                          title='Daily Breakdown Count Trend',
-                          markers=True,
+    if selected_issue:
+        issue_df = df[df[issue_col] == selected_issue].copy()
+
+        # Metrics
+        issue_cols = st.columns(4)
+        issue_metrics = [
+            ("🔄 Occurrences", f"{len(issue_df)}", '#667eea'),
+            ("⏱️ Total Time", f"{issue_df[time_col].sum()//60}h", '#f093fb'),
+            ("📊 Avg Time", f"{issue_df[time_col].mean():.0f}m", '#4facfe'),
+            ("🏭 Machines", f"{issue_df[mc_col].nunique()}", '#43e97b'),
+        ]
+        for col, (label, value, color) in zip(issue_cols, issue_metrics):
+            with col:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <h4 style="color: {color}; margin: 0; font-size: 0.9em; font-weight: 600;">{label}</h4>
+                    <h2 style="color: #fff; margin: 8px 0; font-size: 1.5em; font-weight: 700;">{value}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
+        # Maintenance Chart
+        maint_count = issue_df['Maintenance Name'].value_counts().reset_index()
+        maint_count.columns = ['Maintenance Name', 'Repairs']
+
+        fig_maint = px.bar(maint_count, x='Maintenance Name', y='Repairs',
+                          title=f'{selected_issue} — Repairs by Maintenance',
+                          color='Repairs',
+                          color_continuous_scale='teal',
                           template='plotly_dark')
-        fig_line.update_traces(line_color='#00f5ff', marker_color='#667eea', marker_size=8)
-        fig_line.update_layout(
+        fig_maint.update_layout(
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
-            font_color='white',
-            title_x=0.5,
-            xaxis_tickangle=-45
-        )
-        st.plotly_chart(fig_line, use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    # ==================== TAB 2: DIVISION VIEW ====================
-    with tab2:
-        st.markdown("<div class='section-header'>🏭 Division-wise Analysis</div>", unsafe_allow_html=True)
-
-        all_divisions = sorted(df[division_col].unique())
-        selected_division = st.selectbox("🏭 Select Division", all_divisions)
-
-        if selected_division:
-            div_df = df[df[division_col] == selected_division].copy()
-
-            # KPI Cards
-            div_cols = st.columns(4)
-            div_metrics = [
-                ("💥 Breakdowns", f"{len(div_df)}", '#ff006e'),
-                ("⏱️ Total Time", f"{div_df[time_col].sum()//60}h", '#8338ec'),
-                ("📊 Avg Time", f"{div_df[time_col].mean():.0f}m", '#3a86ff'),
-                ("🔧 Machines", f"{div_df[mc_col].nunique()}", '#38b000'),
-            ]
-            for col, (label, value, color) in zip(div_cols, div_metrics):
-                with col:
-                    st.markdown(f"""
-                    <div class="kpi-card">
-                        <h4 style="color: {color}; margin: 0; font-size: 0.9em; font-weight: 600;">{label}</h4>
-                        <h2 style="color: #fff; margin: 8px 0; font-size: 1.5em; font-weight: 700;">{value}</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-            # Division Issues Chart
-            div_issues = div_df[issue_col].value_counts().reset_index()
-            div_issues.columns = ['Issue', 'Count']
-
-            fig_div_issue = px.bar(div_issues, y='Issue', x='Count',
-                                   title=f'{selected_division} — Issue Breakdown',
-                                   color='Count',
-                                   color_continuous_scale='magma',
-                                   template='plotly_dark',
-                                   orientation='h')
-            fig_div_issue.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font_color='white',
-                title_x=0.5,
-                yaxis_autorange="reversed"
-            )
-            st.plotly_chart(fig_div_issue, use_container_width=True)
-
-            # Timeline Table
-            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-            timeline = div_df[[date_col, machine_id_col, mc_col, issue_col, start_col, close_col, time_col, action_col, 'Maintenance Name']].sort_values(date_col)
-            st.dataframe(timeline, use_container_width=True, height=300)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    # ==================== TAB 3: REPEATED ISSUES ====================
-    with tab3:
-        st.markdown("<div class='section-header'>🔄 Repeated Issues Analysis</div>", unsafe_allow_html=True)
-
-        issue_counts = df[issue_col].value_counts().reset_index()
-        issue_counts.columns = ['Issue', 'Count']
-        issue_counts['Total Downtime (mins)'] = df.groupby(issue_col)[time_col].sum().values
-        issue_counts['Avg Repair (mins)'] = df.groupby(issue_col)[time_col].mean().values
-        issue_counts['Repeated'] = issue_counts['Count'].apply(
-            lambda x: '🔴 HIGH' if x > 5 else '🟡 MEDIUM' if x > 2 else '🟢 LOW'
-        )
-
-        # Interactive Table
-        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-        st.dataframe(issue_counts, use_container_width=True, height=400)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        # Treemap for Issues
-        fig_treemap = px.treemap(issue_counts, path=['Issue'], values='Count',
-                                color='Count', color_continuous_scale='RdYlBu_r',
-                                title='Issue Frequency Treemap',
-                                template='plotly_dark')
-        fig_treemap.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)',
             font_color='white',
             title_x=0.5
         )
-        st.plotly_chart(fig_treemap, use_container_width=True)
+        st.plotly_chart(fig_maint, use_container_width=True)
 
-    # ==================== TAB 4: ISSUE DETAIL ====================
-    with tab4:
-        st.markdown("<div class='section-header'>🔍 Issue Detail View</div>", unsafe_allow_html=True)
+# ==================== TAB 5: MACHINE VIEW ====================
+with tab5:
+    st.markdown("<div class='section-header'>🏭 Machine-wise Analysis</div>", unsafe_allow_html=True)
 
-        all_issues = sorted(df[issue_col].unique())
-        selected_issue = st.selectbox("🔍 Select Issue", all_issues)
+    all_machines = sorted(df[mc_col].unique())
+    selected_machine = st.selectbox("🔧 Select Machine", all_machines)
 
-        if selected_issue:
-            issue_df = df[df[issue_col] == selected_issue].copy()
+    if selected_machine:
+        machine_df = df[df[mc_col] == selected_machine].copy()
 
-            # Metrics
-            issue_cols = st.columns(4)
-            issue_metrics = [
-                ("🔄 Occurrences", f"{len(issue_df)}", '#667eea'),
-                ("⏱️ Total Time", f"{issue_df[time_col].sum()//60}h", '#f093fb'),
-                ("📊 Avg Time", f"{issue_df[time_col].mean():.0f}m", '#4facfe'),
-                ("🏭 Machines", f"{issue_df[mc_col].nunique()}", '#43e97b'),
-            ]
-            for col, (label, value, color) in zip(issue_cols, issue_metrics):
-                with col:
-                    st.markdown(f"""
-                    <div class="kpi-card">
-                        <h4 style="color: {color}; margin: 0; font-size: 0.9em; font-weight: 600;">{label}</h4>
-                        <h2 style="color: #fff; margin: 8px 0; font-size: 1.5em; font-weight: 700;">{value}</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
+        m_cols = st.columns(4)
+        m_metrics = [
+            ("💥 Breakdowns", f"{len(machine_df)}", '#ff006e'),
+            ("⏱️ Total Time", f"{machine_df[time_col].sum()//60}h", '#8338ec'),
+            ("📊 Avg Time", f"{machine_df[time_col].mean():.0f}m", '#3a86ff'),
+            ("⚠️ Issues", f"{machine_df[issue_col].nunique()}", '#fb5607'),
+        ]
+        for col, (label, value, color) in zip(m_cols, m_metrics):
+            with col:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <h4 style="color: {color}; margin: 0; font-size: 0.9em; font-weight: 600;">{label}</h4>
+                    <h2 style="color: #fff; margin: 8px 0; font-size: 1.5em; font-weight: 700;">{value}</h2>
+                </div>
+                """, unsafe_allow_html=True)
 
-            # Maintenance Chart
-            maint_count = issue_df['Maintenance Name'].value_counts().reset_index()
-            maint_count.columns = ['Maintenance Name', 'Repairs']
+        # Machine Issues Chart
+        machine_issues = machine_df[issue_col].value_counts().reset_index()
+        machine_issues.columns = ['Issue', 'Count']
 
-            fig_maint = px.bar(maint_count, x='Maintenance Name', y='Repairs',
-                              title=f'{selected_issue} — Repairs by Maintenance',
-                              color='Repairs',
-                              color_continuous_scale='teal',
-                              template='plotly_dark')
-            fig_maint.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font_color='white',
-                title_x=0.5
-            )
-            st.plotly_chart(fig_maint, use_container_width=True)
+        fig_m = px.bar(machine_issues, y='Issue', x='Count',
+                       title=f'{selected_machine} — Issue Breakdown',
+                       color='Count',
+                       color_continuous_scale='cividis',
+                       template='plotly_dark',
+                       orientation='h')
+        fig_m.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_x=0.5,
+            yaxis_autorange="reversed"
+        )
+        st.plotly_chart(fig_m, use_container_width=True)
 
-    # ==================== TAB 5: MACHINE VIEW ====================
-    with tab5:
-        st.markdown("<div class='section-header'>🏭 Machine-wise Analysis</div>", unsafe_allow_html=True)
+# ==================== TAB 6: FULL DATA ====================
+with tab6:
+    st.markdown("<div class='section-header'>📋 Complete Breakdown Log</div>", unsafe_allow_html=True)
 
-        all_machines = sorted(df[mc_col].unique())
-        selected_machine = st.selectbox("🔧 Select Machine", all_machines)
+    # Filters
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        start_date_filter = st.date_input("From Date", datetime.now() - timedelta(days=30))
+    with col_f2:
+        end_date_filter = st.date_input("To Date", datetime.now())
 
-        if selected_machine:
-            machine_df = df[df[mc_col] == selected_machine].copy()
+    f1, f2, f3, f4, f5 = st.columns(5)
+    with f1:
+        filter_machine = st.multiselect("🏭 Filter Machine", sorted(df[mc_col].unique()), default=[])
+    with f2:
+        filter_issue = st.multiselect("⚠️ Filter Issue", sorted(df[issue_col].unique()), default=[])
+    with f3:
+        filter_division = st.multiselect("🏭 Filter Division", sorted(df[division_col].unique()), default=[])
+    with f4:
+        # 🔥 NEW: Shift Filter
+        available_shifts = sorted(df['Shift'].dropna().unique().tolist()) if 'Shift' in df.columns else ['1', '2', '3']
+        filter_shift = st.multiselect("🌅 Filter by Shift", available_shifts, default=[])
+    with f5:
+        # 🔥 NEW: Time Duration Filter
+        time_filter = st.selectbox(
+            "⏱️ Filter by Time",
+            ["All", "Above 30 mins", "Below 30 mins", "Above 60 mins", "Below 15 mins", "Custom Range"],
+            index=0
+        )
 
-            m_cols = st.columns(4)
-            m_metrics = [
-                ("💥 Breakdowns", f"{len(machine_df)}", '#ff006e'),
-                ("⏱️ Total Time", f"{machine_df[time_col].sum()//60}h", '#8338ec'),
-                ("📊 Avg Time", f"{machine_df[time_col].mean():.0f}m", '#3a86ff'),
-                ("⚠️ Issues", f"{machine_df[issue_col].nunique()}", '#fb5607'),
-            ]
-            for col, (label, value, color) in zip(m_cols, m_metrics):
-                with col:
-                    st.markdown(f"""
-                    <div class="kpi-card">
-                        <h4 style="color: {color}; margin: 0; font-size: 0.9em; font-weight: 600;">{label}</h4>
-                        <h2 style="color: #fff; margin: 8px 0; font-size: 1.5em; font-weight: 700;">{value}</h2>
-                    </div>
-                    """, unsafe_allow_html=True)
+        custom_min = None
+        custom_max = None
+        if time_filter == "Custom Range":
+            c1, c2 = st.columns(2)
+            with c1:
+                custom_min = st.number_input("Min (mins)", min_value=0, value=0, step=5)
+            with c2:
+                custom_max = st.number_input("Max (mins)", min_value=0, value=120, step=5)
 
-            # Machine Issues Chart
-            machine_issues = machine_df[issue_col].value_counts().reset_index()
-            machine_issues.columns = ['Issue', 'Count']
+    filtered = df.copy()
+    if filter_machine:
+        filtered = filtered[filtered[mc_col].isin(filter_machine)]
+    if filter_issue:
+        filtered = filtered[filtered[issue_col].isin(filter_issue)]
+    if filter_division:
+        filtered = filtered[filtered[division_col].isin(filter_division)]
+    if filter_shift:
+        filtered = filtered[filtered['Shift'].isin(filter_shift)]
 
-            fig_m = px.bar(machine_issues, y='Issue', x='Count',
-                           title=f'{selected_machine} — Issue Breakdown',
-                           color='Count',
-                           color_continuous_scale='cividis',
-                           template='plotly_dark',
-                           orientation='h')
-            fig_m.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font_color='white',
-                title_x=0.5,
-                yaxis_autorange="reversed"
-            )
-            st.plotly_chart(fig_m, use_container_width=True)
+    # Apply time filter
+    if time_filter == "Above 30 mins":
+        filtered = filtered[filtered[time_col] > 30]
+    elif time_filter == "Below 30 mins":
+        filtered = filtered[filtered[time_col] < 30]
+    elif time_filter == "Above 60 mins":
+        filtered = filtered[filtered[time_col] > 60]
+    elif time_filter == "Below 15 mins":
+        filtered = filtered[filtered[time_col] < 15]
+    elif time_filter == "Custom Range" and custom_min is not None and custom_max is not None:
+        filtered = filtered[(filtered[time_col] >= custom_min) & (filtered[time_col] <= custom_max)]
 
-    # ==================== TAB 6: FULL DATA ====================
-    with tab6:
-        st.markdown("<div class='section-header'>📋 Complete Breakdown Log</div>", unsafe_allow_html=True)
+    display_cols = [c for c in ['ID', machine_id_col, mc_col, division_col, issue_col, date_col, start_col, close_col, time_col, 'Shift', 'Maintenance Name', action_col] if c in filtered.columns]
 
-        # Filters
-        col_f1, col_f2 = st.columns(2)
-        with col_f1:
-            start_date_filter = st.date_input("From Date", datetime.now() - timedelta(days=30))
-        with col_f2:
-            end_date_filter = st.date_input("To Date", datetime.now())
+    # Show active filter badge
+    active_filters = []
+    if time_filter != "All":
+        active_filters.append(f"⏱️ Time: {time_filter}")
+    if filter_shift:
+        active_filters.append(f"🌅 Shift: {', '.join(filter_shift)}")
 
-        f1, f2, f3, f4, f5 = st.columns(5)
-        with f1:
-            filter_machine = st.multiselect("🏭 Filter Machine", sorted(df[mc_col].unique()), default=[])
-        with f2:
-            filter_issue = st.multiselect("⚠️ Filter Issue", sorted(df[issue_col].unique()), default=[])
-        with f3:
-            filter_division = st.multiselect("🏭 Filter Division", sorted(df[division_col].unique()), default=[])
-        with f4:
-            available_shifts = sorted(df['Shift'].dropna().unique().tolist()) if 'Shift' in df.columns else ['1', '2', '3']
-            filter_shift = st.multiselect("🌅 Filter by Shift", available_shifts, default=[])
-        with f5:
-            time_filter = st.selectbox(
-                "⏱️ Filter by Time",
-                ["All", "Above 30 mins", "Below 30 mins", "Above 60 mins", "Below 15 mins", "Custom Range"],
-                index=0
-            )
+    if active_filters:
+        badge_color = "#00f5ff" if time_filter in ["Below 30 mins", "Below 15 mins"] else "#ff006e"
+        filter_text = " | ".join(active_filters)
+        st.markdown(f'''
+        <div style="margin-bottom: 10px;">
+            <span style="background: {badge_color}; color: #000; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.85em;">
+                🔍 Active Filters: {filter_text} | Showing {len(filtered)} records
+            </span>
+        </div>
+        ''', unsafe_allow_html=True)
 
-            custom_min = None
-            custom_max = None
-            if time_filter == "Custom Range":
-                c1, c2 = st.columns(2)
-                with c1:
-                    custom_min = st.number_input("Min (mins)", min_value=0, value=0, step=5)
-                with c2:
-                    custom_max = st.number_input("Max (mins)", min_value=0, value=120, step=5)
+    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+    st.dataframe(filtered[display_cols], use_container_width=True, height=500)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-        filtered = df.copy()
-        if filter_machine:
-            filtered = filtered[filtered[mc_col].isin(filter_machine)]
-        if filter_issue:
-            filtered = filtered[filtered[issue_col].isin(filter_issue)]
-        if filter_division:
-            filtered = filtered[filtered[division_col].isin(filter_division)]
-        if filter_shift:
-            filtered = filtered[filtered['Shift'].isin(filter_shift)]
+    # Export
+    col_exp1, col_exp2 = st.columns(2)
+    with col_exp1:
+        csv = filtered.to_csv(index=False).encode('utf-8')
+        st.download_button("📄 Download CSV", csv, f"breakdown_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
+    with col_exp2:
+        buffer = BytesIO()
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            filtered.to_excel(writer, sheet_name='Breakdown Log', index=False)
+        st.download_button("📊 Download Excel", buffer.getvalue(), 
+                          f"PM_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-        # Apply time filter
-        if time_filter == "Above 30 mins":
-            filtered = filtered[filtered[time_col] > 30]
-        elif time_filter == "Below 30 mins":
-            filtered = filtered[filtered[time_col] < 30]
-        elif time_filter == "Above 60 mins":
-            filtered = filtered[filtered[time_col] > 60]
-        elif time_filter == "Below 15 mins":
-            filtered = filtered[filtered[time_col] < 15]
-        elif time_filter == "Custom Range" and custom_min is not None and custom_max is not None:
-            filtered = filtered[(filtered[time_col] >= custom_min) & (filtered[time_col] <= custom_max)]
+# ==================== TAB 7: DB MANAGER ====================
+with tab7:
+    st.markdown("<div class='section-header'>💾 Database Manager</div>", unsafe_allow_html=True)
 
-        display_cols = [c for c in ['ID', machine_id_col, mc_col, division_col, issue_col, date_col, start_col, close_col, time_col, 'Shift', 'Maintenance Name', action_col] if c in filtered.columns]
+    # 🔒 DB MANAGER PASSWORD PROTECTION
+    DB_ADMIN_PASSWORD = "admin123"  # Change this admin password!
 
-        # Show active filter badge
-        active_filters = []
-        if time_filter != "All":
-            active_filters.append(f"⏱️ Time: {time_filter}")
-        if filter_shift:
-            active_filters.append(f"🌅 Shift: {', '.join(filter_shift)}")
+    if "db_admin_auth" not in st.session_state:
+        st.session_state.db_admin_auth = False
 
-        if active_filters:
-            badge_color = "#00f5ff" if time_filter in ["Below 30 mins", "Below 15 mins"] else "#ff006e"
-            filter_text = " | ".join(active_filters)
-            st.markdown(f'''
-            <div style="margin-bottom: 10px;">
-                <span style="background: {badge_color}; color: #000; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.85em;">
-                    🔍 Active Filters: {filter_text} | Showing {len(filtered)} records
-                </span>
-            </div>
-            ''', unsafe_allow_html=True)
+    if not st.session_state.db_admin_auth:
+        st.markdown("""
+        <div style="text-align: center; padding: 30px; background: rgba(255,0,110,0.1); 
+                    backdrop-filter: blur(16px); border-radius: 20px; 
+                    border: 1px solid rgba(255,0,110,0.3); margin: 20px 0;">
+            <div style="font-size: 3em; margin-bottom: 15px;">🛡️</div>
+            <h3 style="color: #ff006e; margin-bottom: 10px;">Admin Access Required</h3>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 20px;">
+                This section contains sensitive database operations.<br>
+                Please enter the admin password to continue.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            admin_pass = st.text_input("Admin Password", type="password", 
+                                      placeholder="Enter admin password...",
+                                      label_visibility="collapsed")
+
+            if st.button("🔓 UNLOCK DB MANAGER", use_container_width=True, type="primary"):
+                if admin_pass == DB_ADMIN_PASSWORD:
+                    st.session_state.db_admin_auth = True
+                    st.rerun()
+                else:
+                    st.error("❌ Wrong admin password! Access denied.")
+
+        st.stop()
+    else:
+        # Show logout button for admin
+        col1, col2 = st.columns([6, 1])
+        with col2:
+            if st.button("🔒 Lock", help="Lock DB Manager"):
+                st.session_state.db_admin_auth = False
+                st.rerun()
+
+    st.markdown("""
+    <div style="background: rgba(0,245,255,0.1); border-left: 4px solid #00f5ff; 
+                padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="color: #00f5ff; margin: 0; font-weight: 600;">
+            🛡️ Admin Mode Active - Be careful with database operations!
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    db_df = get_all_data()
+
+    if len(db_df) > 0:
         st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-        st.dataframe(filtered[display_cols], use_container_width=True, height=500)
+        st.dataframe(db_df, use_container_width=True, height=400)
         st.markdown("</div>", unsafe_allow_html=True)
 
-        # Export
-        col_exp1, col_exp2 = st.columns(2)
-        with col_exp1:
-            csv = filtered.to_csv(index=False).encode('utf-8')
-            st.download_button("📄 Download CSV", csv, f"breakdown_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv")
-        with col_exp2:
-            buffer = BytesIO()
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                filtered.to_excel(writer, sheet_name='Breakdown Log', index=False)
-            st.download_button("📊 Download Excel", buffer.getvalue(), 
-                              f"PM_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        # Delete
+        col_del1, col_del2 = st.columns([1, 3])
+        with col_del1:
+            del_id = st.number_input("Record ID to Delete", min_value=1, step=1)
+        with col_del2:
+            if st.button("🗑️ DELETE RECORD", type="primary"):
+                delete_record(int(del_id))
+                st.success(f"✅ Record {del_id} deleted!")
+                st.rerun()
 
-    # ==================== TAB 7: DB MANAGER ====================
-    with tab7:
-        st.markdown("<div class='section-header'>💾 Database Manager</div>", unsafe_allow_html=True)
-
-        # DB MANAGER PASSWORD PROTECTION
-        DB_ADMIN_PASSWORD = "admin123"  # Change this admin password!
-
-        # Initialize session state for DB auth
-        if "db_admin_auth" not in st.session_state:
-            st.session_state.db_admin_auth = False
-
-        # Check if user is authenticated for DB Manager
-        if not st.session_state.db_admin_auth:
-            # Show login form
-            st.markdown("""
-            <div style="text-align: center; padding: 30px; background: rgba(255,0,110,0.1); 
-                        backdrop-filter: blur(16px); border-radius: 20px; 
-                        border: 1px solid rgba(255,0,110,0.3); margin: 20px 0;">
-                <div style="font-size: 3em; margin-bottom: 15px;">🛡️</div>
-                <h3 style="color: #ff006e; margin-bottom: 10px;">Admin Access Required</h3>
-                <p style="color: rgba(255,255,255,0.6); margin-bottom: 20px;">
-                    This section contains sensitive database operations.<br>
-                    Please enter the admin password to continue.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                admin_pass = st.text_input("Admin Password", type="password", 
-                                          placeholder="Enter admin password...",
-                                          label_visibility="collapsed",
-                                          key="db_admin_pass_input")
-
-                if st.button("🔓 UNLOCK DB MANAGER", use_container_width=True, type="primary", key="db_unlock_btn"):
-                    if admin_pass == DB_ADMIN_PASSWORD:
-                        st.session_state.db_admin_auth = True
-                        st.rerun()
-                    else:
-                        st.error("❌ Wrong admin password! Access denied.")
-
-        else:
-            # Admin is authenticated - show DB Manager content
-            # Show logout button for admin
-            col1, col2 = st.columns([6, 1])
-            with col2:
-                if st.button("🔒 Lock", help="Lock DB Manager", key="db_lock_btn"):
-                    st.session_state.db_admin_auth = False
-                    st.rerun()
-
-            st.markdown("""
-            <div style="background: rgba(0,245,255,0.1); border-left: 4px solid #00f5ff; 
-                        padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
-                <p style="color: #00f5ff; margin: 0; font-weight: 600;">
-                    🛡️ Admin Mode Active - Be careful with database operations!
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            db_df = get_all_data()
-
-            if len(db_df) > 0:
-                st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-                st.dataframe(db_df, use_container_width=True, height=400)
-                st.markdown("</div>", unsafe_allow_html=True)
-
-                # Delete
-                col_del1, col_del2 = st.columns([1, 3])
-                with col_del1:
-                    del_id = st.number_input("Record ID to Delete", min_value=1, step=1, key="del_id_input")
-                with col_del2:
-                    if st.button("🗑️ DELETE RECORD", type="primary", key="del_rec_btn"):
-                        delete_record(int(del_id))
-                        st.success(f"✅ Record {del_id} deleted!")
-                        st.rerun()
-
-                # Danger Zone
-                if st.button("🗑️🗑️ CLEAR ALL DATA", key="clear_all_btn"):
-                    clear_database()
-                    st.warning("⚠️ All data cleared!")
-                    st.rerun()
-            else:
-                st.warning("⚠️ Database is empty!")
+        # Danger Zone
+        if st.button("🗑️🗑️ CLEAR ALL DATA"):
+            clear_database()
+            st.warning("⚠️ All data cleared!")
+            st.rerun()
+    else:
+        st.warning("⚠️ Database is empty!")
 
 # ================================================================================
 # FOOTER - MODERN
 # ================================================================================
 st.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
-footer_date = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
 st.markdown(f"""
 <div class="glass-card" style="text-align: center; padding: 20px;">
     <p style="color: rgba(255,255,255,0.6); font-size: 0.9em; margin: 0; font-weight: 500;">
-        🔧 AI Breakdown Tracker v3.0 | {footer_date}
+        🔧 AI Breakdown Tracker v3.0 | {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}
     </p>
     <p style="color: rgba(255,255,255,0.4); font-size: 0.8em; margin: 8px 0 0 0;">
         SQLite Database | Excel Import | Plotly Interactive Charts | Dark Theme
