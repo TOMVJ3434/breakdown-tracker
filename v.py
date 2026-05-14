@@ -606,13 +606,78 @@ with input_col2:
 st.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_html=True)
 st.markdown("<div class='section-header'>📊 Load Data from Database</div>", unsafe_allow_html=True)
 
-load_option = st.radio("Select Data Source:", ["📊 Database (Saved Records)", "🎲 Demo Data"], horizontal=True)
+load_option = st.radio("Select Data Source:", ["📊 Database (Saved Records)", "📋 All Database Records", "🎲 Demo Data"], horizontal=True)
 
 if load_option == "📊 Database (Saved Records)":
+    # 🔥 NEW: Date Range Filter
+    st.markdown("<div class='chart-container' style='margin: 15px 0;'>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 15px;'>📅 Filter by Date Range</h4>", unsafe_allow_html=True)
+
+    date_col1, date_col2, date_col3 = st.columns([2, 2, 1])
+    with date_col1:
+        from_date = st.date_input("📅 From Date", datetime.now() - timedelta(days=30), key="load_from_date")
+    with date_col2:
+        to_date = st.date_input("📅 To Date", datetime.now(), key="load_to_date")
+    with date_col3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        load_btn = st.button("🔄 LOAD DATA", use_container_width=True, type="primary")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if load_btn:
+        df = get_all_data()
+        if len(df) == 0:
+            st.warning("⚠️ Database empty! Upload Excel or add manual entry first.")
+            st.stop()
+
+        # Convert date column for filtering
+        df['Machine ID'] = df['machine_id']
+        df['M/C Name'] = df['mc_name']
+        df['Division'] = df['division']
+        df['Issue'] = df['issue']
+        df['Date'] = df['date']
+        df['Start Time'] = df['start_time']
+        df['Close Time'] = df['close_time']
+        df['Close Date'] = df['close_date'].fillna(df['date'])
+        df['Total Time (mins)'] = df['total_time_mins']
+        df['Action Taken'] = df['action_taken']
+        df['Shift'] = df['shift']
+        df['Maintenance Name'] = df['maintenance_name']
+
+        # Apply date filter
+        try:
+            # Convert string dates to datetime for comparison
+            df['date_parsed'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
+            from_dt = pd.Timestamp(from_date)
+            to_dt = pd.Timestamp(to_date)
+
+            # Filter by date range
+            df_filtered = df[(df['date_parsed'] >= from_dt) & (df['date_parsed'] <= to_dt)].copy()
+            df_filtered = df_filtered.drop('date_parsed', axis=1)
+
+            if len(df_filtered) == 0:
+                st.warning(f"⚠️ No records found between {from_date.strftime('%d-%m-%Y')} and {to_date.strftime('%d-%m-%Y')}")
+                st.info("📊 Showing all records instead...")
+                df = df.drop('date_parsed', axis=1)
+            else:
+                df = df_filtered
+                st.success(f"✅ Loaded {len(df)} records from Database ({from_date.strftime('%d-%m-%Y')} to {to_date.strftime('%d-%m-%Y')})")
+        except Exception as e:
+            df = df.drop('date_parsed', axis=1)
+            st.success(f"✅ Loaded {len(df)} records from Database (date filter skipped)")
+    else:
+        st.info("📅 Select date range and click 'LOAD DATA' to fetch records")
+        # Initialize empty df to prevent errors
+        df = pd.DataFrame()
+        st.stop()
+
+elif load_option == "📋 All Database Records":
+    # 🔥 NEW: Load all records without date filter
     df = get_all_data()
     if len(df) == 0:
         st.warning("⚠️ Database empty! Upload Excel or add manual entry first.")
         st.stop()
+
     df['Machine ID'] = df['machine_id']
     df['M/C Name'] = df['mc_name']
     df['Division'] = df['division']
@@ -625,7 +690,8 @@ if load_option == "📊 Database (Saved Records)":
     df['Action Taken'] = df['action_taken']
     df['Shift'] = df['shift']
     df['Maintenance Name'] = df['maintenance_name']
-    st.success(f"✅ Loaded {len(df)} records from Database")
+    st.success(f"✅ Loaded ALL {len(df)} records from Database")
+
 else:
     df = generate_demo_data()
     st.info(f"📊 Using DEMO DATA — {len(df)} records")
@@ -1145,10 +1211,13 @@ with tab7:
     # 🔒 DB MANAGER PASSWORD PROTECTION
     DB_ADMIN_PASSWORD = "admin123"  # Change this admin password!
 
+    # Initialize session state for DB auth
     if "db_admin_auth" not in st.session_state:
         st.session_state.db_admin_auth = False
 
+    # Check if user is authenticated for DB Manager
     if not st.session_state.db_admin_auth:
+        # Show login form
         st.markdown("""
         <div style="text-align: center; padding: 30px; background: rgba(255,0,110,0.1); 
                     backdrop-filter: blur(16px); border-radius: 20px; 
@@ -1166,57 +1235,61 @@ with tab7:
         with col2:
             admin_pass = st.text_input("Admin Password", type="password", 
                                       placeholder="Enter admin password...",
-                                      label_visibility="collapsed")
+                                      label_visibility="collapsed",
+                                      key="db_admin_pass_input")
 
-            if st.button("🔓 UNLOCK DB MANAGER", use_container_width=True, type="primary"):
+            if st.button("🔓 UNLOCK DB MANAGER", use_container_width=True, type="primary", key="db_unlock_btn"):
                 if admin_pass == DB_ADMIN_PASSWORD:
                     st.session_state.db_admin_auth = True
                     st.rerun()
                 else:
                     st.error("❌ Wrong admin password! Access denied.")
 
-        st.stop()
+        # Don't show anything else until authenticated
+        db_df = pd.DataFrame()
     else:
+        # Admin is authenticated - show DB Manager content
         # Show logout button for admin
         col1, col2 = st.columns([6, 1])
         with col2:
-            if st.button("🔒 Lock", help="Lock DB Manager"):
+            if st.button("🔒 Lock", help="Lock DB Manager", key="db_lock_btn"):
                 st.session_state.db_admin_auth = False
                 st.rerun()
 
-    st.markdown("""
-    <div style="background: rgba(0,245,255,0.1); border-left: 4px solid #00f5ff; 
-                padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
-        <p style="color: #00f5ff; margin: 0; font-weight: 600;">
-            🛡️ Admin Mode Active - Be careful with database operations!
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background: rgba(0,245,255,0.1); border-left: 4px solid #00f5ff; 
+                    padding: 12px 20px; border-radius: 8px; margin-bottom: 20px;">
+            <p style="color: #00f5ff; margin: 0; font-weight: 600;">
+                🛡️ Admin Mode Active - Be careful with database operations!
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    db_df = get_all_data()
+        db_df = get_all_data()
 
-    if len(db_df) > 0:
-        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-        st.dataframe(db_df, use_container_width=True, height=400)
-        st.markdown("</div>", unsafe_allow_html=True)
+    if st.session_state.db_admin_auth:
+        if len(db_df) > 0:
+            st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+            st.dataframe(db_df, use_container_width=True, height=400)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-        # Delete
-        col_del1, col_del2 = st.columns([1, 3])
-        with col_del1:
-            del_id = st.number_input("Record ID to Delete", min_value=1, step=1)
-        with col_del2:
-            if st.button("🗑️ DELETE RECORD", type="primary"):
-                delete_record(int(del_id))
-                st.success(f"✅ Record {del_id} deleted!")
+            # Delete
+            col_del1, col_del2 = st.columns([1, 3])
+            with col_del1:
+                del_id = st.number_input("Record ID to Delete", min_value=1, step=1, key="del_id_input")
+            with col_del2:
+                if st.button("🗑️ DELETE RECORD", type="primary", key="del_rec_btn"):
+                    delete_record(int(del_id))
+                    st.success(f"✅ Record {del_id} deleted!")
+                    st.rerun()
+
+            # Danger Zone
+            if st.button("🗑️🗑️ CLEAR ALL DATA", key="clear_all_btn"):
+                clear_database()
+                st.warning("⚠️ All data cleared!")
                 st.rerun()
-
-        # Danger Zone
-        if st.button("🗑️🗑️ CLEAR ALL DATA"):
-            clear_database()
-            st.warning("⚠️ All data cleared!")
-            st.rerun()
-    else:
-        st.warning("⚠️ Database is empty!")
+        else:
+            st.warning("⚠️ Database is empty!")
 
 # ================================================================================
 # FOOTER - MODERN
