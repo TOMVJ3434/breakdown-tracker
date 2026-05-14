@@ -11,6 +11,57 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+# ================================================================================
+# PASSWORD AUTHENTICATION
+# ================================================================================
+APP_PASSWORD = "rovix123"  # Change this password!
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.set_page_config(page_title="🔧 AI Breakdown Tracker - Login", page_icon="🔒")
+
+    st.markdown("""
+    <style>
+        .stApp {
+            background: linear-gradient(135deg, #203a43 50%, #ADD8E6 10%, #2c5364 90%);
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("""
+        <div style="text-align: center; padding: 40px; background: rgba(255,255,255,0.05); 
+                    backdrop-filter: blur(16px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
+                    margin-top: 100px;">
+            <div style="font-size: 4em; margin-bottom: 20px;">🔒</div>
+            <h2 style="color: #fff; margin-bottom: 8px;">AI Breakdown Tracker</h2>
+            <p style="color: rgba(255,255,255,0.6); margin-bottom: 30px;">Rovix Technology</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        password = st.text_input("Enter Password", type="password", 
+                                placeholder="Type password here...", 
+                                label_visibility="collapsed")
+
+        if st.button("🔓 LOGIN", use_container_width=True):
+            if password == APP_PASSWORD:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("❌ Wrong password! Try again.")
+                st.markdown("""
+                <div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 0.8em; margin-top: 20px;">
+                    <p>Hint: Default password is <code>rovix123</code></p>
+                    <p>Contact admin to change password</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+    st.stop()
+
+# ================================================================================
 DB_PATH = "breakdown_database.db"
 
 # ================================================================================
