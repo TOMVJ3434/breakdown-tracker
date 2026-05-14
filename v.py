@@ -609,23 +609,67 @@ st.markdown("<div class='section-header'>📊 Load Data from Database</div>", un
 load_option = st.radio("Select Data Source:", ["📊 Database (Saved Records)", "🎲 Demo Data"], horizontal=True)
 
 if load_option == "📊 Database (Saved Records)":
-    df = get_all_data()
-    if len(df) == 0:
-        st.warning("⚠️ Database empty! Upload Excel or add manual entry first.")
+    # 🔥 NEW: Date Range Filter
+    st.markdown("<div class='chart-container' style='margin: 15px 0;'>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 15px;'>📅 Filter by Date Range</h4>", unsafe_allow_html=True)
+
+    date_col1, date_col2, date_col3 = st.columns([2, 2, 1])
+    with date_col1:
+        from_date = st.date_input("📅 From Date", datetime.now() - timedelta(days=30), key="load_from_date")
+    with date_col2:
+        to_date = st.date_input("📅 To Date", datetime.now(), key="load_to_date")
+    with date_col3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        load_btn = st.button("🔄 LOAD DATA", use_container_width=True, type="primary")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    if load_btn:
+        df = get_all_data()
+        if len(df) == 0:
+            st.warning("⚠️ Database empty! Upload Excel or add manual entry first.")
+            st.stop()
+
+        # Convert date column for filtering
+        df['Machine ID'] = df['machine_id']
+        df['M/C Name'] = df['mc_name']
+        df['Division'] = df['division']
+        df['Issue'] = df['issue']
+        df['Date'] = df['date']
+        df['Start Time'] = df['start_time']
+        df['Close Time'] = df['close_time']
+        df['Close Date'] = df['close_date'].fillna(df['date'])
+        df['Total Time (mins)'] = df['total_time_mins']
+        df['Action Taken'] = df['action_taken']
+        df['Shift'] = df['shift']
+        df['Maintenance Name'] = df['maintenance_name']
+
+        # Apply date filter
+        try:
+            # Convert string dates to datetime for comparison
+            df['date_parsed'] = pd.to_datetime(df['Date'], format='%d-%m-%Y', errors='coerce')
+            from_dt = pd.Timestamp(from_date)
+            to_dt = pd.Timestamp(to_date)
+
+            # Filter by date range
+            df_filtered = df[(df['date_parsed'] >= from_dt) & (df['date_parsed'] <= to_dt)].copy()
+            df_filtered = df_filtered.drop('date_parsed', axis=1)
+
+            if len(df_filtered) == 0:
+                st.warning(f"⚠️ No records found between {from_date.strftime('%d-%m-%Y')} and {to_date.strftime('%d-%m-%Y')}")
+                st.info("📊 Showing all records instead...")
+                df = df.drop('date_parsed', axis=1)
+            else:
+                df = df_filtered
+                st.success(f"✅ Loaded {len(df)} records from Database ({from_date.strftime('%d-%m-%Y')} to {to_date.strftime('%d-%m-%Y')})")
+        except Exception as e:
+            df = df.drop('date_parsed', axis=1)
+            st.success(f"✅ Loaded {len(df)} records from Database (date filter skipped)")
+    else:
+        st.info("📅 Select date range and click 'LOAD DATA' to fetch records")
+        # Initialize empty df to prevent errors
+        df = pd.DataFrame()
         st.stop()
-    df['Machine ID'] = df['machine_id']
-    df['M/C Name'] = df['mc_name']
-    df['Division'] = df['division']
-    df['Issue'] = df['issue']
-    df['Date'] = df['date']
-    df['Start Time'] = df['start_time']
-    df['Close Time'] = df['close_time']
-    df['Close Date'] = df['close_date'].fillna(df['date'])
-    df['Total Time (mins)'] = df['total_time_mins']
-    df['Action Taken'] = df['action_taken']
-    df['Shift'] = df['shift']
-    df['Maintenance Name'] = df['maintenance_name']
-    st.success(f"✅ Loaded {len(df)} records from Database")
 else:
     df = generate_demo_data()
     st.info(f"📊 Using DEMO DATA — {len(df)} records")
