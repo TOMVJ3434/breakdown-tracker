@@ -771,104 +771,133 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 with tab1:
     st.markdown("<div class='section-header'>📊 Maintenance Dashboard</div>", unsafe_allow_html=True)
 
-    # Division Bar Chart - Modern
+    # 🔥 DATE FILTER FOR DASHBOARD ONLY
     st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Breakdown Summary</h4>", unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>📅 Dashboard Date Filter</h4>", unsafe_allow_html=True)
 
-    div_summary = df.groupby(division_col).agg({
-        time_col: ['sum', 'mean', 'count'],
-        mc_col: 'nunique'
-    }).round(0)
-    div_summary.columns = ['Total Downtime (mins)', 'Avg Downtime (mins)', 'Breakdown Count', 'Machines Affected']
-    div_summary = div_summary.sort_values('Breakdown Count', ascending=False)
-    st.dataframe(div_summary, use_container_width=True)
+    dash_date_col1, dash_date_col2 = st.columns(2)
+    with dash_date_col1:
+        dash_from_date = st.date_input("📅 From Date", datetime.now() - timedelta(days=30), key="dash_from")
+    with dash_date_col2:
+        dash_to_date = st.date_input("📅 To Date", datetime.now(), key="dash_to")
 
-    # Interactive Plotly Bar Chart
-    div_counts = df[division_col].value_counts().reset_index()
-    div_counts.columns = ['Division', 'Count']
+    # Convert df date column to datetime for filtering
+    df['Date_parsed'] = pd.to_datetime(df[date_col], format='%d-%m-%Y', errors='coerce')
+    dash_from_dt = pd.to_datetime(dash_from_date)
+    dash_to_dt = pd.to_datetime(dash_to_date)
 
-    fig_div = px.bar(div_counts, x='Division', y='Count',
-                     title='Breakdown Count by Division',
-                     color='Count', color_continuous_scale='viridis',
-                     template='plotly_dark')
-    fig_div.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font_color='white',
-        title_font_size=16,
-        title_x=0.5,
-        showlegend=False
-    )
-    st.plotly_chart(fig_div, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Filter dataframe for dashboard only
+    df_dash = df[(df['Date_parsed'] >= dash_from_dt) & (df['Date_parsed'] <= dash_to_dt)].copy()
 
-    # Top 5 Issues - Interactive Pie
-    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🔄 Top 5 Repeated Issues</h4>", unsafe_allow_html=True)
+    if len(df_dash) == 0:
+        st.warning("⚠️ No data found for selected date range!")
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.success(f"📊 Showing {len(df_dash)} records from {dash_from_date.strftime('%d-%m-%Y')} to {dash_to_date.strftime('%d-%m-%Y')}")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    top5 = df[issue_col].value_counts().head(5).reset_index()
-    top5.columns = ['Issue', 'Count']
+        # Division Bar Chart - Modern
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Breakdown Summary</h4>", unsafe_allow_html=True)
 
-    fig_pie = px.pie(top5, values='Count', names='Issue',
-                     title='Top 5 Issues Distribution',
-                     color_discrete_sequence=px.colors.sequential.Plasma_r,
-                     template='plotly_dark',
-                     hole=0.4)
-    fig_pie.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font_color='white',
-        title_x=0.5,
-        showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.2)
-    )
-    st.plotly_chart(fig_pie, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        div_summary = df_dash.groupby(division_col).agg({
+            time_col: ['sum', 'mean', 'count'],
+            mc_col: 'nunique'
+        }).round(0)
+        div_summary.columns = ['Total Downtime (mins)', 'Avg Downtime (mins)', 'Breakdown Count', 'Machines Affected']
+        div_summary = div_summary.sort_values('Breakdown Count', ascending=False)
+        st.dataframe(div_summary, use_container_width=True)
 
-    # Machine Downtime - Interactive
-    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Machine-wise Total Downtime</h4>", unsafe_allow_html=True)
+        # Interactive Plotly Bar Chart
+        div_counts = df_dash[division_col].value_counts().reset_index()
+        div_counts.columns = ['Division', 'Count']
 
-    machine_downtime = df.groupby(mc_col)[time_col].sum().sort_values(ascending=False).reset_index()
-    machine_downtime.columns = ['Machine', 'Downtime (mins)']
-    machine_downtime['Downtime (hours)'] = machine_downtime['Downtime (mins)'] / 60
+        fig_div = px.bar(div_counts, x='Division', y='Count',
+                         title='Breakdown Count by Division',
+                         color='Count', color_continuous_scale='viridis',
+                         template='plotly_dark')
+        fig_div.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_font_size=16,
+            title_x=0.5,
+            showlegend=False
+        )
+        st.plotly_chart(fig_div, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    fig_machine = px.bar(machine_downtime, x='Machine', y='Downtime (hours)',
-                        title='Machine Downtime (Hours)',
-                        color='Downtime (hours)',
-                        color_continuous_scale='reds',
-                        template='plotly_dark')
-    fig_machine.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font_color='white',
-        title_x=0.5,
-        xaxis_tickangle=-45
-    )
-    st.plotly_chart(fig_machine, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        # Top 5 Issues - Interactive Pie
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🔄 Top 5 Repeated Issues</h4>", unsafe_allow_html=True)
 
-    # Daily Trend - Interactive Line
-    st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>📅 Daily Breakdown Trend</h4>", unsafe_allow_html=True)
+        top5 = df_dash[issue_col].value_counts().head(5).reset_index()
+        top5.columns = ['Issue', 'Count']
 
-    daily = df.groupby(date_col).size().reset_index()
-    daily.columns = ['Date', 'Count']
+        fig_pie = px.pie(top5, values='Count', names='Issue',
+                         title='Top 5 Issues Distribution',
+                         color_discrete_sequence=px.colors.sequential.Plasma_r,
+                         template='plotly_dark',
+                         hole=0.4)
+        fig_pie.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_x=0.5,
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2)
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    fig_line = px.line(daily, x='Date', y='Count',
-                      title='Daily Breakdown Count Trend',
-                      markers=True,
-                      template='plotly_dark')
-    fig_line.update_traces(line_color='#00f5ff', marker_color='#667eea', marker_size=8)
-    fig_line.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font_color='white',
-        title_x=0.5,
-        xaxis_tickangle=-45
-    )
-    st.plotly_chart(fig_line, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        # Machine Downtime - Interactive
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Machine-wise Total Downtime</h4>", unsafe_allow_html=True)
+
+        machine_downtime = df_dash.groupby(mc_col)[time_col].sum().sort_values(ascending=False).reset_index()
+        machine_downtime.columns = ['Machine', 'Downtime (mins)']
+        machine_downtime['Downtime (hours)'] = machine_downtime['Downtime (mins)'] / 60
+
+        fig_machine = px.bar(machine_downtime, x='Machine', y='Downtime (hours)',
+                            title='Machine Downtime (Hours)',
+                            color='Downtime (hours)',
+                            color_continuous_scale='reds',
+                            template='plotly_dark')
+        fig_machine.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_x=0.5,
+            xaxis_tickangle=-45
+        )
+        st.plotly_chart(fig_machine, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Daily Trend - Interactive Line
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>📅 Daily Breakdown Trend</h4>", unsafe_allow_html=True)
+
+        daily = df_dash.groupby(date_col).size().reset_index()
+        daily.columns = ['Date', 'Count']
+
+        fig_line = px.line(daily, x='Date', y='Count',
+                          title='Daily Breakdown Count Trend',
+                          markers=True,
+                          template='plotly_dark')
+        fig_line.update_traces(line_color='#00f5ff', marker_color='#667eea', marker_size=8)
+        fig_line.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_x=0.5,
+            xaxis_tickangle=-45
+        )
+        st.plotly_chart(fig_line, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Clean up temporary column
+    if 'Date_parsed' in df.columns:
+        df.drop(columns=['Date_parsed'], inplace=True)
 
 # ==================== TAB 2: DIVISION VIEW ====================
 with tab2:
