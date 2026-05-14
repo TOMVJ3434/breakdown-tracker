@@ -1154,6 +1154,150 @@ with tab6:
     st.dataframe(filtered[display_cols], use_container_width=True, height=500)
     st.markdown("</div>", unsafe_allow_html=True)
 
+    # ================================================================================
+    # 📊 CHARTS FOR FILTERED DATA (Same as Dashboard)
+    # ================================================================================
+    if len(filtered) > 0:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>📊 Filtered Data Analytics</div>", unsafe_allow_html=True)
+
+        # Chart 1: Division Bar Chart
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Breakdown Count by Division</h4>", unsafe_allow_html=True)
+
+        div_counts_filtered = filtered[division_col].value_counts().reset_index()
+        div_counts_filtered.columns = ['Division', 'Count']
+
+        fig_div_f = px.bar(div_counts_filtered, x='Division', y='Count',
+                           title='Breakdown Count by Division (Filtered)',
+                           color='Count', color_continuous_scale='viridis',
+                           template='plotly_dark')
+        fig_div_f.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_font_size=16,
+            title_x=0.5,
+            showlegend=False
+        )
+        st.plotly_chart(fig_div_f, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Chart 2: Top 5 Issues Pie
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🔄 Top 5 Repeated Issues</h4>", unsafe_allow_html=True)
+
+        top5_filtered = filtered[issue_col].value_counts().head(5).reset_index()
+        top5_filtered.columns = ['Issue', 'Count']
+
+        fig_pie_f = px.pie(top5_filtered, values='Count', names='Issue',
+                           title='Top 5 Issues Distribution (Filtered)',
+                           color_discrete_sequence=px.colors.sequential.Plasma_r,
+                           template='plotly_dark',
+                           hole=0.4)
+        fig_pie_f.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_x=0.5,
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2)
+        )
+        st.plotly_chart(fig_pie_f, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Chart 3: Machine Downtime
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🏭 Machine-wise Total Downtime</h4>", unsafe_allow_html=True)
+
+        machine_downtime_filtered = filtered.groupby(mc_col)[time_col].sum().sort_values(ascending=False).reset_index()
+        machine_downtime_filtered.columns = ['Machine', 'Downtime (mins)']
+        machine_downtime_filtered['Downtime (hours)'] = machine_downtime_filtered['Downtime (mins)'] / 60
+
+        fig_machine_f = px.bar(machine_downtime_filtered, x='Machine', y='Downtime (hours)',
+                               title='Machine Downtime (Hours) - Filtered',
+                               color='Downtime (hours)',
+                               color_continuous_scale='reds',
+                               template='plotly_dark')
+        fig_machine_f.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_x=0.5,
+            xaxis_tickangle=-45
+        )
+        st.plotly_chart(fig_machine_f, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Chart 4: Daily Trend
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>📅 Daily Breakdown Trend</h4>", unsafe_allow_html=True)
+
+        daily_filtered = filtered.groupby(date_col).size().reset_index()
+        daily_filtered.columns = ['Date', 'Count']
+
+        fig_line_f = px.line(daily_filtered, x='Date', y='Count',
+                             title='Daily Breakdown Count Trend (Filtered)',
+                             markers=True,
+                             template='plotly_dark')
+        fig_line_f.update_traces(line_color='#00f5ff', marker_color='#667eea', marker_size=8)
+        fig_line_f.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font_color='white',
+            title_x=0.5,
+            xaxis_tickangle=-45
+        )
+        st.plotly_chart(fig_line_f, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Chart 5: Shift-wise Breakdown (NEW)
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🌅 Shift-wise Breakdown Count</h4>", unsafe_allow_html=True)
+
+        if 'Shift' in filtered.columns:
+            shift_counts = filtered['Shift'].value_counts().reset_index()
+            shift_counts.columns = ['Shift', 'Count']
+
+            fig_shift = px.bar(shift_counts, x='Shift', y='Count',
+                               title='Breakdown Count by Shift',
+                               color='Count',
+                               color_continuous_scale='teal',
+                               template='plotly_dark')
+            fig_shift.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font_color='white',
+                title_x=0.5
+            )
+            st.plotly_chart(fig_shift, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        # Chart 6: Maintenance Person Performance (NEW)
+        st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00f5ff; margin-bottom: 16px;'>🔧 Maintenance Person - Repairs Count</h4>", unsafe_allow_html=True)
+
+        if 'Maintenance Name' in filtered.columns:
+            maint_counts = filtered['Maintenance Name'].value_counts().reset_index()
+            maint_counts.columns = ['Maintenance Name', 'Repairs']
+
+            fig_maint_f = px.bar(maint_counts, x='Maintenance Name', y='Repairs',
+                                 title='Repairs by Maintenance Person',
+                                 color='Repairs',
+                                 color_continuous_scale='magma',
+                                 template='plotly_dark')
+            fig_maint_f.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font_color='white',
+                title_x=0.5,
+                xaxis_tickangle=-45
+            )
+            st.plotly_chart(fig_maint_f, use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.warning("⚠️ No data to show charts. Adjust your filters.")
+
     # Export
     col_exp1, col_exp2 = st.columns(2)
     with col_exp1:
