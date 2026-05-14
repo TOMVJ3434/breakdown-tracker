@@ -1108,7 +1108,16 @@ with tab6:
             with c2:
                 custom_max = st.number_input("Max (mins)", min_value=0, value=120, step=5)
 
+    # Convert Date column to datetime for filtering
+    df['Date_parsed'] = pd.to_datetime(df[date_col], format='%d-%m-%Y', errors='coerce')
+    start_dt = pd.to_datetime(start_date_filter)
+    end_dt = pd.to_datetime(end_date_filter)
+
     filtered = df.copy()
+
+    # DATE FILTER - From Date & To Date
+    filtered = filtered[(filtered['Date_parsed'] >= start_dt) & (filtered['Date_parsed'] <= end_dt)]
+
     if filter_machine:
         filtered = filtered[filtered[mc_col].isin(filter_machine)]
     if filter_issue:
@@ -1130,14 +1139,25 @@ with tab6:
     elif time_filter == "Custom Range" and custom_min is not None and custom_max is not None:
         filtered = filtered[(filtered[time_col] >= custom_min) & (filtered[time_col] <= custom_max)]
 
+    # Clean up temp column
+    if 'Date_parsed' in filtered.columns:
+        filtered = filtered.drop(columns=['Date_parsed'])
+
     display_cols = [c for c in ['ID', machine_id_col, mc_col, division_col, issue_col, date_col, start_col, close_col, time_col, 'Shift', 'Maintenance Name', action_col] if c in filtered.columns]
 
     # Show active filter badge
     active_filters = []
+    active_filters.append(f"📅 Date: {start_date_filter.strftime('%d-%m-%Y')} to {end_date_filter.strftime('%d-%m-%Y')}")
     if time_filter != "All":
         active_filters.append(f"⏱️ Time: {time_filter}")
     if filter_shift:
         active_filters.append(f"🌅 Shift: {', '.join(filter_shift)}")
+    if filter_machine:
+        active_filters.append(f"🔧 Machines: {len(filter_machine)} selected")
+    if filter_issue:
+        active_filters.append(f"⚠️ Issues: {len(filter_issue)} selected")
+    if filter_division:
+        active_filters.append(f"🏭 Divisions: {len(filter_division)} selected")
 
     if active_filters:
         badge_color = "#00f5ff" if time_filter in ["Below 30 mins", "Below 15 mins"] else "#ff006e"
