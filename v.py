@@ -1051,7 +1051,7 @@ with tab6:
     with col_f2:
         end_date_filter = st.date_input("To Date", datetime.now())
 
-    f1, f2, f3, f4 = st.columns(4)
+    f1, f2, f3, f4, f5 = st.columns(5)
     with f1:
         filter_machine = st.multiselect("🏭 Filter Machine", sorted(df[mc_col].unique()), default=[])
     with f2:
@@ -1059,6 +1059,10 @@ with tab6:
     with f3:
         filter_division = st.multiselect("🏭 Filter Division", sorted(df[division_col].unique()), default=[])
     with f4:
+        # 🔥 NEW: Shift Filter
+        available_shifts = sorted(df['Shift'].dropna().unique().tolist()) if 'Shift' in df.columns else ['1', '2', '3']
+        filter_shift = st.multiselect("🌅 Filter by Shift", available_shifts, default=[])
+    with f5:
         # 🔥 NEW: Time Duration Filter
         time_filter = st.selectbox(
             "⏱️ Filter by Time",
@@ -1082,6 +1086,8 @@ with tab6:
         filtered = filtered[filtered[issue_col].isin(filter_issue)]
     if filter_division:
         filtered = filtered[filtered[division_col].isin(filter_division)]
+    if filter_shift:
+        filtered = filtered[filtered['Shift'].isin(filter_shift)]
 
     # Apply time filter
     if time_filter == "Above 30 mins":
@@ -1098,12 +1104,19 @@ with tab6:
     display_cols = [c for c in ['ID', machine_id_col, mc_col, division_col, issue_col, date_col, start_col, close_col, time_col, 'Shift', 'Maintenance Name', action_col] if c in filtered.columns]
 
     # Show active filter badge
+    active_filters = []
     if time_filter != "All":
+        active_filters.append(f"⏱️ Time: {time_filter}")
+    if filter_shift:
+        active_filters.append(f"🌅 Shift: {', '.join(filter_shift)}")
+
+    if active_filters:
         badge_color = "#00f5ff" if time_filter in ["Below 30 mins", "Below 15 mins"] else "#ff006e"
+        filter_text = " | ".join(active_filters)
         st.markdown(f'''
         <div style="margin-bottom: 10px;">
             <span style="background: {badge_color}; color: #000; padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 0.85em;">
-                ⏱️ Active Filter: {time_filter} | Showing {len(filtered)} records
+                🔍 Active Filters: {filter_text} | Showing {len(filtered)} records
             </span>
         </div>
         ''', unsafe_allow_html=True)
