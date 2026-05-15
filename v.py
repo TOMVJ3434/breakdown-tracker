@@ -1318,6 +1318,202 @@ with tab6:
     else:
         st.warning("⚠️ No data to show charts. Adjust your filters.")
 
+    # ================================================================================
+    # 🔧 AI PM SUGGESTIONS - BASED ON FILTERED DATA
+    # ================================================================================
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div class='section-header'>🔧 AI PM Suggestions</div>", unsafe_allow_html=True)
+
+    # PM Suggestions Database (from real maintenance practices)
+    PM_SUGGESTIONS_DB = {
+        'Sensor Fail': [
+            "1. Check sensor wiring and connections for loose contacts or corrosion",
+            "2. Verify sensor calibration and alignment with target",
+            "3. Inspect for environmental contamination (dust, oil, moisture)",
+            "4. Check sensor power supply voltage stability",
+            "5. Replace sensor if output signal is erratic or out of spec"
+        ],
+        'Air Pressure Low': [
+            "1. Check air compressor operation and pressure settings",
+            "2. Inspect air lines for leaks, cracks, or blockages",
+            "3. Verify pressure regulator is functioning correctly",
+            "4. Check air filter and dryer condition - replace if clogged",
+            "5. Ensure adequate air supply capacity for current demand"
+        ],
+        'Hydraulic Leak': [
+            "1. Inspect all hydraulic hoses and fittings for cracks/wear",
+            "2. Check hydraulic cylinder seals and rod condition",
+            "3. Verify hydraulic fluid level and condition - check for contamination",
+            "4. Check system pressure - overpressure can cause seal failure",
+            "5. Replace worn seals and tighten connections to spec"
+        ],
+        'Motor Overheat': [
+            "1. Check motor cooling fan operation and airflow path",
+            "2. Verify motor load is within rated capacity - reduce if overloaded",
+            "3. Inspect bearings for wear or inadequate lubrication",
+            "4. Check electrical connections for loose terminals causing resistance",
+            "5. Measure insulation resistance - rewind motor if below 1 MΩ"
+        ],
+        'Belt Break': [
+            "1. Check belt tension - too tight or too loose causes premature failure",
+            "2. Inspect pulley alignment using straight edge or laser tool",
+            "3. Verify mechanical load on driven equipment - check for binding",
+            "4. Check for foreign objects in belt path causing damage",
+            "5. Replace with correct belt specification and grade"
+        ],
+        'Tool Wear': [
+            "1. Check cutting parameters - reduce speed/feed if excessive",
+            "2. Verify tool material grade is suitable for workpiece material",
+            "3. Ensure adequate coolant flow and concentration",
+            "4. Inspect tool holder for runout or damage - replace if worn",
+            "5. Implement tool life monitoring system with preset limits"
+        ],
+        'Lubrication Issue': [
+            "1. Check lubricant level and top up to recommended mark",
+            "2. Verify correct lubricant type and viscosity grade for application",
+            "3. Inspect lubrication lines for blockages or leaks",
+            "4. Check automatic lubrication pump operation and timer settings",
+            "5. Clean lubrication filters and strainers - replace if clogged"
+        ],
+        'Electrical Fault': [
+            "1. Check circuit breakers and fuses for tripping or blowing",
+            "2. Inspect wiring for insulation damage, chafing, or short circuits",
+            "3. Verify earth/ground connections are secure - test continuity",
+            "4. Check contactors and relays for carbon buildup or pitting",
+            "5. Use megger to test insulation resistance - repair if < 1 MΩ"
+        ],
+        'Spindle Motor Belt Cut': [
+            "1. Check mechanical load in spindle - verify no binding or overload",
+            "2. Inspect belt life and replace per PM schedule before failure",
+            "3. Check spindle bearing condition - worn bearings increase belt load",
+            "4. Verify pulley alignment and belt tension with gauge",
+            "5. Check for oil/coolant contamination on belt - clean or replace"
+        ],
+        'Bearing Failure': [
+            "1. Check lubrication condition and frequency - increase if needed",
+            "2. Verify bearing is correctly installed and aligned",
+            "3. Inspect for contamination ingress - check seals for damage",
+            "4. Check vibration levels - high vibration indicates advanced wear",
+            "5. Replace bearing and record failure mode for RCA"
+        ],
+        'Vibration Issue': [
+            "1. Rebalance tooling and collets - use precision-balanced tools",
+            "2. Inspect and replace bearings if worn or loose",
+            "3. Check for shaft damage using dial indicator run-out test",
+            "4. Realign spindle to machine bed using precision tools",
+            "5. Tighten all mounting bolts and use vibration-dampening mats"
+        ],
+        'Coolant Problem': [
+            "1. Check coolant level and concentration - adjust to spec",
+            "2. Clean coolant nozzles and filters - replace if clogged",
+            "3. Verify coolant pump operation and flow rate",
+            "4. Check for contamination (tramp oil, bacteria) - skim or replace",
+            "5. Ensure coolant temperature is maintained at 20°C (68°F)"
+        ],
+        'Tool Deflection': [
+            "1. Check tool overhang - reduce stick-out if excessive",
+            "2. Verify tool holder balance and clamping force",
+            "3. Reduce cutting parameters (DOC, feed rate) if overloaded",
+            "4. Check machine spindle alignment and tramming",
+            "5. Use stiffer tool material or larger diameter tool"
+        ]
+    }
+
+    # Get unique issues from filtered data
+    if len(filtered) > 0:
+        unique_issues_filtered = filtered[issue_col].unique()
+
+        suggestion_data = []
+        for issue in unique_issues_filtered:
+            issue_df = filtered[filtered[issue_col] == issue]
+            machines = ', '.join(issue_df[mc_col].unique()[:5])  # Show max 5 machines
+            count = len(issue_df)
+            total_downtime = issue_df[time_col].sum()
+
+            # Get suggestions from DB or generate generic
+            if issue in PM_SUGGESTIONS_DB:
+                suggestions = PM_SUGGESTIONS_DB[issue]
+                source = "📚 Maintenance Database"
+            else:
+                # AI-generated generic suggestion based on issue keywords
+                suggestions = [
+                    f"1. Inspect all components related to {issue.lower()} thoroughly",
+                    f"2. Check connections, fittings, and mounting for {issue.lower()}",
+                    "3. Verify system parameters and operating conditions are within spec",
+                    "4. Review equipment manual for specific troubleshooting steps",
+                    "5. Schedule preventive maintenance if this issue is recurrent"
+                ]
+                source = "🤖 AI Generated"
+
+            suggestion_data.append({
+                'Issue': issue,
+                'Affected Machines': machines,
+                'Occurrences': count,
+                'Total Downtime (mins)': total_downtime,
+                'Source': source,
+                'Suggestions': '\n'.join(suggestions)
+            })
+
+        if suggestion_data:
+            sugg_df = pd.DataFrame(suggestion_data)
+
+            # Summary metrics
+            sugg_cols = st.columns(3)
+            with sugg_cols[0]:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <h4 style="color: #00f5ff; margin: 0; font-size: 0.9em;">📋 Issues Analyzed</h4>
+                    <h2 style="color: #fff; margin: 8px 0; font-size: 1.8em;">{len(sugg_df)}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+            with sugg_cols[1]:
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <h4 style="color: #38ef7d; margin: 0; font-size: 0.9em;">✅ Suggestions Ready</h4>
+                    <h2 style="color: #fff; margin: 8px 0; font-size: 1.8em;">{len(sugg_df)}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+            with sugg_cols[2]:
+                db_count = len(sugg_df[sugg_df['Source'] == "📚 Maintenance Database"])
+                st.markdown(f"""
+                <div class="kpi-card">
+                    <h4 style="color: #f093fb; margin: 0; font-size: 0.9em;">📚 DB Matches</h4>
+                    <h2 style="color: #fff; margin: 8px 0; font-size: 1.8em;">{db_count}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # Display suggestions as expandable cards
+            for idx, row in sugg_df.iterrows():
+                with st.expander(f"🔧 {row['Issue']} ({row['Occurrences']} times | {row['Total Downtime (mins)']} mins) — {row['Source']}"):
+                    st.markdown(f"<p style='color: #fb5607; font-weight: 600; margin-bottom: 10px;'>🏭 Affected Machines: {row['Affected Machines']}</p>", unsafe_allow_html=True)
+                    for point in row['Suggestions'].split('\n'):
+                        st.markdown(f"<p style='color: #00f5ff; margin: 4px 0; padding-left: 10px; border-left: 3px solid #667eea;'>{point}</p>", unsafe_allow_html=True)
+
+            # CSV Download for PM Suggestions
+            st.markdown("<br>", unsafe_allow_html=True)
+            csv_sugg = sugg_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                "📄 Download PM Suggestions CSV", 
+                csv_sugg, 
+                f"PM_Suggestions_{datetime.now().strftime('%Y%m%d_%H%M')}.csv", 
+                "text/csv",
+                use_container_width=True
+            )
+
+            st.markdown("""
+            <div style="background: rgba(0,245,255,0.05); border-left: 4px solid #00f5ff; 
+                        padding: 12px 20px; border-radius: 8px; margin-top: 20px;">
+                <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 0.85em;">
+                    💡 <strong>Note:</strong> These suggestions are based on common industrial maintenance practices. 
+                    For critical equipment, always consult the manufacturer's manual and qualified technicians.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("ℹ️ No data available for PM suggestions. Apply filters to generate suggestions.")
+
     # Export
     col_exp1, col_exp2 = st.columns(2)
     with col_exp1:
