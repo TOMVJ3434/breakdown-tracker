@@ -29,7 +29,6 @@ def init_database():
                 machine_id TEXT,
                 mc_name TEXT NOT NULL,
                 division TEXT,
-                sap_number TEXT,
                 issue TEXT NOT NULL,
                 date TEXT NOT NULL,
                 start_time TEXT NOT NULL,
@@ -45,13 +44,6 @@ def init_database():
             )
         """)
         conn.commit()
-    else:
-        # Check if sap_number column exists, if not add it
-        cursor.execute("PRAGMA table_info(breakdown_log)")
-        columns = [col[1] for col in cursor.fetchall()]
-        if 'sap_number' not in columns:
-            cursor.execute("ALTER TABLE breakdown_log ADD COLUMN sap_number TEXT")
-            conn.commit()
     conn.close()
 
 def get_all_data():
@@ -66,12 +58,11 @@ def save_to_database(df):
     for _, row in df.iterrows():
         cursor.execute("""
             INSERT INTO breakdown_log 
-            (machine_id, mc_name, division, sap_number, issue, date, start_time, close_time, close_date, total_time_mins, action_taken, shift, maintenance_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (machine_id, mc_name, division, issue, date, start_time, close_time, close_date, total_time_mins, action_taken, shift, maintenance_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             str(row.get('Machine ID', '')), str(row.get('M/C Name', '')), 
-            str(row.get('Division', 'DIV-1')), str(row.get('SAP Number', '')),
-            str(row.get('Issue', '')),
+            str(row.get('Division', 'DIV-1')), str(row.get('Issue', '')),
             str(row.get('Date', datetime.now().strftime('%d-%m-%Y'))),
             str(row.get('Start Time', '08:00')), str(row.get('Close Time', '09:00')),
             str(row.get('Close Date', row.get('Date', ''))),
@@ -409,7 +400,6 @@ def generate_demo_data():
             close_date = date + timedelta(days=1)
         data.append({
             'ID': i + 1, 'Machine ID': machine_id, 'M/C Name': machine, 'Division': division,
-            'SAP Number': f'SAP-{np.random.randint(10000, 99999)}',
             'Issue': issue, 'Date': date.strftime('%d-%m-%Y'), 'Start Time': start_time.strftime('%H:%M'),
             'Close Time': close_time.strftime('%H:%M'), 'Close Date': close_date.strftime('%d-%m-%Y'),
             'Total Time (mins)': duration_mins, 'Action Taken': actions[issue],
@@ -457,7 +447,7 @@ with st.sidebar:
 
     st.markdown("""
     <div style="text-align: center; color: rgba(255,255,255,0.4); font-size: 0.75em; margin-top: 20px;">
-        <p>v3.1 | SQLite + Streamlit + Plotly</p>
+        <p>v3.0 | SQLite + Streamlit + Plotly</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -529,7 +519,6 @@ with input_col2:
         m_id = st.text_input("🏷️ Machine ID", "MC-001")
         m_name = st.text_input("🔧 Machine Name", "Press-01")
         m_division = st.text_input("🏭 Division", "DIV-1")
-        m_sap_no = st.text_input("📋 SAP Number", "SAP-00001")
         m_issue = st.text_input("⚠️ Issue", "Sensor Fail")
         m_date = st.date_input("📅 Start Date", datetime.now())
         m_start = st.time_input("⏱️ Start Time", datetime.strptime("10:00", "%H:%M").time())
@@ -550,9 +539,9 @@ with input_col2:
             cursor = conn.cursor()
             cursor.execute("""
                 INSERT INTO breakdown_log 
-                (machine_id, mc_name, division, sap_number, issue, date, start_time, close_time, close_date, total_time_mins, action_taken, shift, maintenance_name, severity)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (m_id, m_name, m_division, m_sap_no, m_issue, m_date.strftime('%d-%m-%Y'), 
+                (machine_id, mc_name, division, issue, date, start_time, close_time, close_date, total_time_mins, action_taken, shift, maintenance_name, severity)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (m_id, m_name, m_division, m_issue, m_date.strftime('%d-%m-%Y'), 
                 m_start.strftime('%H:%M'), m_close.strftime('%H:%M'), 
                 close_dt.strftime('%d-%m-%Y'), duration, m_action, m_shift, m_maintenance, m_severity))
             conn.commit()
@@ -576,7 +565,6 @@ if load_option == "📊 Database (Saved Records)":
     df['Machine ID'] = df['machine_id']
     df['M/C Name'] = df['mc_name']
     df['Division'] = df['division']
-    df['SAP Number'] = df['sap_number']
     df['Issue'] = df['issue']
     df['Date'] = df['date']
     df['Start Time'] = df['start_time']
@@ -603,7 +591,6 @@ action_col = 'Action Taken'
 time_col = 'Total Time (mins)'
 machine_id_col = 'Machine ID'
 division_col = 'Division'
-sap_col = 'SAP Number'
 
 if 'Close Date' not in df.columns:
     df['Close Date'] = df[date_col]
@@ -619,8 +606,6 @@ if 'Division' not in df.columns:
     df['Division'] = 'DIV-1'
 if 'Machine ID' not in df.columns:
     df['Machine ID'] = 'MC-000'
-if 'SAP Number' not in df.columns:
-    df['SAP Number'] = 'SAP-00000'
 
 if division_filter and "All" not in division_filter:
     df = df[df[division_col].isin(division_filter)].copy()
@@ -881,7 +866,7 @@ with tab2:
 
         # Timeline Table
         st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
-        timeline = div_df[[date_col, machine_id_col, mc_col, sap_col, issue_col, start_col, close_col, time_col, action_col, 'Maintenance Name']].sort_values(date_col)
+        timeline = div_df[[date_col, machine_id_col, mc_col, issue_col, start_col, close_col, time_col, action_col, 'Maintenance Name']].sort_values(date_col)
         st.dataframe(timeline, use_container_width=True, height=300)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -1029,7 +1014,7 @@ with tab6:
     if filter_division:
         filtered = filtered[filtered[division_col].isin(filter_division)]
 
-    display_cols = [c for c in ['ID', machine_id_col, mc_col, division_col, sap_col, issue_col, date_col, start_col, close_col, time_col, 'Shift', 'Maintenance Name', action_col] if c in filtered.columns]
+    display_cols = [c for c in ['ID', machine_id_col, mc_col, division_col, issue_col, date_col, start_col, close_col, time_col, 'Shift', 'Maintenance Name', action_col] if c in filtered.columns]
 
     st.markdown("<div class='chart-container'>", unsafe_allow_html=True)
     st.dataframe(filtered[display_cols], use_container_width=True, height=500)
@@ -1084,10 +1069,10 @@ st.markdown("<hr style='border-color: rgba(255,255,255,0.1);'>", unsafe_allow_ht
 st.markdown(f"""
 <div class="glass-card" style="text-align: center; padding: 20px;">
     <p style="color: rgba(255,255,255,0.6); font-size: 0.9em; margin: 0; font-weight: 500;">
-        🔧 AI Breakdown Tracker v3.1 | {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}
+        🔧 AI Breakdown Tracker v3.0 | {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}
     </p>
     <p style="color: rgba(255,255,255,0.4); font-size: 0.8em; margin: 8px 0 0 0;">
-        SQLite Database | Excel Import | Plotly Interactive Charts | Dark Theme | SAP Number Support
+        SQLite Database | Excel Import | Plotly Interactive Charts | Dark Theme
     </p>
 </div>
 """, unsafe_allow_html=True)
